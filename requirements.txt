@@ -2,3 +2,4 @@ huggingface_hub
 pillow
 requests
 instagrapi
+google-generativeai
