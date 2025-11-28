@@ -1,0 +1,31 @@
+name: Instagram Botu
+
+on:
+  schedule:
+    # Türkiye Saati (UTC+3) Ayarı:
+    # 12:00 TR -> 09:00 UTC (Öğlen)
+    # 18:00 TR -> 15:00 UTC (Akşamüstü)
+    # 21:00 TR -> 18:00 UTC (Akşam)
+    - cron: '0 9 * * *'
+    - cron: '0 15 * * *'
+    - cron: '0 18 * * *'
+  workflow_dispatch: # Elle deneme butonu
+
+jobs:
+  calistir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Python Kur
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12'
+      - name: Kutuphaneleri Yukle
+        run: pip install -r requirements.txt
+      - name: Botu Calistir
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          INSTA_USER: ${{ secrets.INSTA_USER }}
+          INSTA_PASS: ${{ secrets.INSTA_PASS }}
+          INSTA_SESSION: ${{ secrets.INSTA_SESSION }}
+        run: python bot.py
