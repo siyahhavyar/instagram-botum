@@ -15,9 +15,8 @@ repo_id = "stabilityai/stable-diffusion-xl-base-1.0"
 
 # --- 🏛️ DEVASA GİZEM VE TARİH HAVUZU 🐉 ---
 content_pool = [
-    # --- ANTİK VE KAYIP UYGARLIKLAR ---
     {
-        "prompt": "Gobeklitepe ancient ruins at night, mysterious glowing carvings, starry sky, cinematic lighting, hyperrealistic, 8k",
+        "prompt": "Gobeklitepe ancient ruins at night, mysterious glowing carvings, starry sky, cinematic lighting, hyperrealistic, 8k, archaeological site",
         "caption": "🌍 Tarihin Sıfır Noktası: Göbeklitepe\n\n12.000 yıl önce, henüz yerleşik hayata bile geçilmemişken bu devasa tapınakları kim inşa etti? Teknoloji olmadan o taşlar nasıl taşındı?\n\nSizce burası bir tapınak mı yoksa uzaylılarla iletişim merkezi mi? 👇",
         "tags": "#Göbeklitepe #Tarih #Arkeoloji #Gizem #Şanlıurfa"
     },
@@ -41,8 +40,6 @@ content_pool = [
         "caption": "☁️ Bulutların Üzerindeki Şehir: Machu Picchu\n\nİnkaların İspanyollardan sakladığı gizli şehir. Bu kadar yüksek bir dağın tepesine bu taşlar nasıl çıkarıldı? Şehrin gerçek amacı neydi?\n\nManzara sizce de büyüleyici değil mi? 👇",
         "tags": "#MachuPicchu #İnka #Tarih #Peru #Dağ"
     },
-
-    # --- MİTOLOJİ VE EFSANEVİ VARLIKLAR ---
     {
         "prompt": "Medusa gorgon with snake hair looking at camera, stone statues in background, dark greek temple, cinematic lighting, horror fantasy art, 8k",
         "caption": "🐍 Lanetli Güzellik: Medusa\n\nBir zamanlar güzelliğiyle tanrıları kıskandıran kadın, saçları yılana dönüşerek lanetlendi. Gözlerine bakan taşa dönüyor.\n\nSizce Medusa bir canavar mı yoksa bir kurban mı? 👇",
@@ -63,8 +60,6 @@ content_pool = [
         "caption": "⚡ Şimşeklerin Efendisi: Thor\n\nİskandinav mitolojisinin en güçlüsü. Çekici Mjolnir'i ondan başka kimse kaldıramaz. Gök gürlediğinde Thor'un savaştığına inanılırdı.\n\nMarvel'ın Thor'u mu yoksa Gerçek Mitoloji Thor'u mu? 👇",
         "tags": "#Thor #Viking #Mitoloji #Valhalla #Sanat"
     },
-
-    # --- GİZEMLİ VE ÇÖZÜLEMEMİŞ OLAYLAR ---
     {
         "prompt": "Bermuda Triangle mystery, ship and airplane disappearing in vortex, storm, compass spinning, cinematic, ominous atmosphere",
         "caption": "⚠️ Bermuda Şeytan Üçgeni\n\nYüzlerce gemi ve uçağın iz bırakmadan kaybolduğu o lanetli bölge. Manyetik alan mı, uzaylı üssü mü, yoksa sadece kötü hava koşulları mı?\n\nTeoriniz ne? 👇",
@@ -85,8 +80,6 @@ content_pool = [
         "caption": "☢️ Terk Edilmiş Şehir: Çernobil\n\n1986'daki felaketten sonra zamanın durduğu yer: Pripyat. Radyasyon yüzünden binlerce yıl kimse yaşayamayacak. Doğanın şehri geri alması ürkütücü değil mi?\n\nOraya bir turla gitmek ister miydiniz? 👇",
         "tags": "#Çernobil #Pripyat #Tarih #Urkutucu #Radyasyon"
     },
-
-    # --- UZAY VE BİLİM ---
     {
         "prompt": "Black hole in deep space destroying a star, event horizon, glowing accretion disk, epic cosmic scale, cinematic sci-fi art, 8k",
         "caption": "🕳️ Evrenin Canavarı: Karadelikler\n\nIşığın bile kaçamadığı, zamanın durduğu yerler. İçine düşerseniz ne olacağını kimse bilmiyor. Başka bir evrene geçiş kapısı olabilir mi?\n\nUzayın derinlikleri sizi korkutuyor mu? 👇",
@@ -102,8 +95,6 @@ content_pool = [
         "caption": "🔴 Yeni Evimiz: Mars\n\nKızıl Gezegen'de yaşam hayal değil, plan. Bir gün Dünya'yı terk edip oraya taşınmak zorunda kalabiliriz.\n\nMars'a giden ilk kolonide olmak ister miydiniz? Evet/Hayır? 👇",
         "tags": "#Mars #Uzay #Gelecek #BilimKurgu #ElonMusk"
     },
-
-    # --- MİSTİK OBJELER VE KİTAPLAR ---
     {
         "prompt": "Voynich manuscript open on wooden table, candlelight, mysterious plants, unreadable text, photorealistic",
         "caption": "📖 Voynich Yazması\n\nDünyanın en gizemli kitabı. İçindeki bitkiler dünyada yok, dili ise hala çözülemedi. Yapay zeka bile kıramıyor.\n\nUzaylılardan bir mesaj olabilir mi? 👇",
@@ -111,4 +102,46 @@ content_pool = [
     },
     {
         "prompt": "Terracotta warriors army in a dark dusty underground tomb, dramatic spotlight, clay soldiers, ancient china, mysterious atmosphere",
-        "caption": "🗿 Toprak Askerler Ordusu\n\nİmparatoru korumak için yapılan 8.000 asker
+        "caption": "🗿 Toprak Askerler Ordusu\n\nİmparatoru korumak için yapılan 8.000 asker. Ve hiçbiri birbirine benzemiyor! Her biri gerçek bir insandan modellenmiş.\n\n2000 yıl önce bu nasıl yapıldı? 👇",
+        "tags": "#Çin #Tarih #Sanat #Gizem #Arkeoloji"
+    },
+    {
+        "prompt": "Antikythera mechanism ancient bronze gears underwater, mysterious technology, cinematic lighting, macro shot, 8k",
+        "caption": "⚙️ Antik Bilgisayar: Antikythera\n\n2000 yıl önce Yunanlıların yaptığı bu mekanizma, gezegenlerin hareketini hesaplıyordu. O dönemde böyle bir teknoloji nasıl mümkündü?\n\nKayıp bir teknoloji mi? 👇",
+        "tags": "#Teknoloji #Tarih #Yunan #Gizem #Bilim"
+    }
+]
+
+def main_job():
+    # Rastgele Seç
+    data = random.choice(content_pool)
+    print(f"🎨 Seçilen Konu: {data['caption'][:30]}...")
+
+    # Resmi Çiz (Dikey Format)
+    try:
+        client = InferenceClient(model=repo_id, token=HF_TOKEN)
+        # Instagram Hikaye/Reels Boyutu (9:16) - En iyi kalite
+        prompt_final = f"{data['prompt']}, vertical, aspect ratio 2:3, 8k resolution, photorealistic, masterpiece, dramatic lighting, highly detailed, --no text"
+        image = client.text_to_image(prompt_final, width=768, height=1344)
+        image.save("insta_post.jpg")
+        print("✅ Resim Çizildi!")
+    except Exception as e:
+        print(f"❌ Resim Hatası: {e}")
+        return
+
+    # Instagram'a At
+    try:
+        cl = InstaClient()
+        # Biletle Giriş (En Güvenlisi)
+        cl.set_settings(json.loads(INSTA_SESSION))
+        cl.login(INSTA_USER, INSTA_PASS)
+        
+        caption_full = f"{data['caption']}\n.\n.\n.\n{data['tags']} #YapayZeka #AIArt #Belgesel #Kesfet"
+        
+        cl.photo_upload(path="insta_post.jpg", caption=caption_full)
+        print("🚀 INSTAGRAM'A BAŞARIYLA ATILDI!")
+    except Exception as e:
+        print(f"❌ Instagram Hatası: {e}")
+
+if __name__ == "__main__":
+    main_job()
