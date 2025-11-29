@@ -6,47 +6,42 @@ import random
 import google.generativeai as genai
 from instagrapi import Client
 
-# ==========================================
-# 1. GÜVENLİK VE AYARLAR
-# ==========================================
+# --- 1. ŞİFRELERİ AL ---
 GEMINI_KEY = os.environ['GEMINI_KEY']
 INSTA_USER = os.environ['INSTA_USER']
 INSTA_PASS = os.environ['INSTA_PASS']
 INSTA_SESSION = os.environ.get('INSTA_SESSION')
 
-# --- DÜZELTME BURADA: MODEL GÜNCELLENDİ ---
+# --- 2. AYARLAR (EN YENİ MODEL) ---
 genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash') 
-# ------------------------------------------
+# 'gemini-pro' yerine 'gemini-1.5-flash' kullanıyoruz. Bu model HATA VERMEZ.
+model = genai.GenerativeModel('gemini-1.5-flash')
 
+# --- 3. KONU HAVUZU ---
 KONULAR = [
     "Tarihin Çözülememiş Gizemleri", "Korkunç Mitolojik Yaratıklar",
     "Uzay ve Evrenin Sırları", "Antik Uygarlıkların Teknolojileri",
     "Lanetli Yerler", "Paranormal Olaylar", "Arkeolojik Keşifler",
-    "Kayıp Kıtalar ve Şehirler", "Simya ve Yasaklı Bilgiler"
+    "Kayıp Kıtalar", "Simya ve Okültizm"
 ]
 
-# ==========================================
-# 2. BEYİN: GEMINI
-# ==========================================
 def icerik_uret():
     print("🧠 Gemini (1.5 Flash) çalışıyor...")
     secilen_konu = random.choice(KONULAR)
     
     prompt = f"""
-    Sen profesyonel bir tarih ve gizem belgeseli yapımcısısın.
-    Konu: {secilen_konu}.
+    Sen profesyonel bir tarih belgeseli yazarısın. Konu: {secilen_konu}.
     
     Görevin:
-    1. Bu konuda çok az bilinen, insanı şok edecek bir olay seç.
-    2. Instagram için 10 GÖRSELLİ, hikaye anlatan bir kaydırmalı (Carousel) post hazırla.
+    1. Bu konuda şok edici, az bilinen bir olay seç.
+    2. Instagram için 10 GÖRSELLİ, kaydırmalı (Carousel) post hazırla.
     3. Bana SADECE aşağıdaki JSON formatında cevap ver:
     
     {{
-      "baslik": "İlgi çekici bir başlık (Türkçe)",
-      "aciklama": "Konuyu detaylı anlatan, 5-6 paragraflık ansiklopedik, doyurucu bir yazı (Türkçe). En sona etiketleri ekle.",
+      "baslik": "İlgi çekici Türkçe Başlık",
+      "aciklama": "Konuyu anlatan 5-6 paragraflık detaylı Türkçe metin. En sona etiketleri ekle.",
       "gorsel_komutlari": [
-        "1. görsel (Kapak) için İngilizce prompt (Çok etkileyici, 8k, cinematic, vertical)",
+        "1. görsel için İngilizce prompt (vertical, 8k, cinematic)",
         "2. görsel için İngilizce prompt (vertical)",
         "3. görsel için İngilizce prompt (vertical)",
         "4. görsel için İngilizce prompt (vertical)",
@@ -55,7 +50,7 @@ def icerik_uret():
         "7. görsel için İngilizce prompt (vertical)",
         "8. görsel için İngilizce prompt (vertical)",
         "9. görsel için İngilizce prompt (vertical)",
-        "10. görsel (Final) için İngilizce prompt (vertical)"
+        "10. görsel için İngilizce prompt (vertical)"
       ]
     }}
     """
@@ -70,12 +65,10 @@ def icerik_uret():
         print(f"❌ Gemini Hatası: {e}")
         return None
 
-# ==========================================
-# 3. RESSAM: POLLINATIONS FLUX
-# ==========================================
 def resim_ciz(prompt, dosya_adi):
     print(f"🎨 Çiziliyor: {dosya_adi}...")
-    prompt_encoded = requests.utils.quote(f"{prompt}, vertical, 8k resolution, photorealistic, masterpiece, cinematic lighting, sharp focus")
+    # Pollinations Flux (Sınırsız)
+    prompt_encoded = requests.utils.quote(f"{prompt}, vertical, 8k, photorealistic, cinematic")
     seed = random.randint(1, 1000000)
     url = f"https://pollinations.ai/p/{prompt_encoded}?width=1080&height=1350&model=flux&seed={seed}&nologo=true&enhance=true"
     
@@ -89,43 +82,41 @@ def resim_ciz(prompt, dosya_adi):
     except:
         return False
 
-# ==========================================
-# 4. ANA PROGRAM
-# ==========================================
 def main_job():
+    # A) İçerik
     data = icerik_uret()
     if not data: return
 
+    # B) Resimler
     resim_listesi = []
-    print("📸 10 Resim hazırlanıyor (Sabırlı olun)...")
+    print("📸 10 Resim hazırlanıyor (Lütfen bekleyin)...")
     
     for i, prompt in enumerate(data['gorsel_komutlari']):
         dosya_adi = f"resim_{i+1}.jpg"
         if resim_ciz(prompt, dosya_adi):
             resim_listesi.append(dosya_adi)
-            time.sleep(3)
-        else:
-            print(f"⚠️ {dosya_adi} çizilemedi.")
-
+            time.sleep(2) 
+    
     if len(resim_listesi) < 2:
-        print("❌ Yeterli resim yok, işlem iptal.")
+        print("❌ Yeterli resim çizilemedi.")
         return
 
+    # C) Paylaşım
     print(f"🚀 {len(resim_listesi)} resim Instagram'a yükleniyor...")
     cl = Client()
     
     try:
-        # PASAPORT (SESSION) İLE GİRİŞ
+        # Önce Session (Pasaport) ile dene
         if INSTA_SESSION:
             try:
                 print("🎫 Pasaport ile giriliyor...")
                 cl.set_settings(json.loads(INSTA_SESSION))
                 cl.login(INSTA_USER, INSTA_PASS)
             except:
-                print("⚠️ Pasaport eski, normal giriş deneniyor...")
+                print("⚠️ Pasaport geçersiz, şifre ile deneniyor...")
                 cl.login(INSTA_USER, INSTA_PASS)
         else:
-            print("🔑 Şifre ile giriliyor (Riskli)...")
+            print("🔑 Şifre ile giriliyor...")
             cl.login(INSTA_USER, INSTA_PASS)
 
         print("✅ Giriş Başarılı!")
@@ -138,8 +129,7 @@ def main_job():
         
         # Temizlik
         for r in resim_listesi:
-            if os.path.exists(r):
-                os.remove(r)
+            if os.path.exists(r): os.remove(r)
             
     except Exception as e:
         print(f"❌ Instagram Hatası: {e}")
