@@ -7,19 +7,18 @@ import google.generativeai as genai
 from instagrapi import Client
 
 # ==========================================
-# 1. GÜVENLİK VE AYARLAR (KASADAN ÇEKİLİR)
+# 1. GÜVENLİK VE AYARLAR
 # ==========================================
-# Bu bilgileri GitHub > Settings > Secrets kısmına eklemiş olman lazım.
 GEMINI_KEY = os.environ['GEMINI_KEY']
 INSTA_USER = os.environ['INSTA_USER']
 INSTA_PASS = os.environ['INSTA_PASS']
-INSTA_SESSION = os.environ.get('INSTA_SESSION') # Pasaport (Bilet)
+INSTA_SESSION = os.environ.get('INSTA_SESSION')
 
-# Gemini Başlat
+# --- DÜZELTME BURADA YAPILDI (YENİ MODEL) ---
 genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-flash') 
+# --------------------------------------------
 
-# Konu Havuzu
 KONULAR = [
     "Tarihin Çözülememiş Gizemleri", "Korkunç Mitolojik Yaratıklar",
     "Uzay ve Evrenin Sırları", "Antik Uygarlıkların Teknolojileri",
@@ -28,10 +27,10 @@ KONULAR = [
 ]
 
 # ==========================================
-# 2. BEYİN: GEMINI (İÇERİK ÜRETİCİ)
+# 2. BEYİN: GEMINI
 # ==========================================
 def icerik_uret():
-    print("🧠 Gemini (Belgesel Editörü) çalışıyor...")
+    print("🧠 Gemini (1.5 Flash) çalışıyor...")
     secilen_konu = random.choice(KONULAR)
     
     prompt = f"""
@@ -72,20 +71,15 @@ def icerik_uret():
         return None
 
 # ==========================================
-# 3. RESSAM: POLLINATIONS FLUX (SINIRSIZ)
+# 3. RESSAM: POLLINATIONS FLUX
 # ==========================================
 def resim_ciz(prompt, dosya_adi):
     print(f"🎨 Çiziliyor: {dosya_adi}...")
-    
-    # Promptu URL uyumlu hale getir ve kalite ekle
     prompt_encoded = requests.utils.quote(f"{prompt}, vertical, 8k resolution, photorealistic, masterpiece, cinematic lighting, sharp focus")
     seed = random.randint(1, 1000000)
-    
-    # Pollinations Flux Modeli (1080x1350 Instagram Dikey)
     url = f"https://pollinations.ai/p/{prompt_encoded}?width=1080&height=1350&model=flux&seed={seed}&nologo=true&enhance=true"
     
     try:
-        # İndirme işlemi (90 saniye bekleme süresi)
         response = requests.get(url, timeout=90)
         if response.status_code == 200:
             with open(dosya_adi, 'wb') as f:
@@ -96,23 +90,20 @@ def resim_ciz(prompt, dosya_adi):
         return False
 
 # ==========================================
-# 4. ANA PROGRAM VE PAYLAŞIM
+# 4. ANA PROGRAM
 # ==========================================
 def main_job():
-    # A) İçeriği Al
     data = icerik_uret()
     if not data: return
 
-    # B) 10 Resmi Çiz
     resim_listesi = []
     print("📸 10 Resim hazırlanıyor (Sabırlı olun)...")
     
     for i, prompt in enumerate(data['gorsel_komutlari']):
         dosya_adi = f"resim_{i+1}.jpg"
-        # Resmi çiz, başarısız olursa tekrar dene (basit retry)
         if resim_ciz(prompt, dosya_adi):
             resim_listesi.append(dosya_adi)
-            time.sleep(3) # Sunucuyu yormamak için bekle
+            time.sleep(3)
         else:
             print(f"⚠️ {dosya_adi} çizilemedi.")
 
@@ -120,12 +111,11 @@ def main_job():
         print("❌ Yeterli resim yok, işlem iptal.")
         return
 
-    # C) Instagram'a Yükle
     print(f"🚀 {len(resim_listesi)} resim Instagram'a yükleniyor...")
     cl = Client()
     
     try:
-        # PASAPORT (SESSION) İLE GİRİŞ - EN KRİTİK KISIM
+        # PASAPORT (SESSION) İLE GİRİŞ
         if INSTA_SESSION:
             try:
                 print("🎫 Pasaport ile giriliyor...")
@@ -140,14 +130,13 @@ def main_job():
 
         print("✅ Giriş Başarılı!")
 
-        # Albüm Paylaşımı
         cl.album_upload(
             paths=resim_listesi,
             caption=f"📢 {data['baslik']}\n\n{data['aciklama']}"
         )
         print("🎉 TEBRİKLER! GÖNDERİ PAYLAŞILDI!")
         
-        # Temizlik (Resimleri sil)
+        # Temizlik
         for r in resim_listesi:
             if os.path.exists(r):
                 os.remove(r)
