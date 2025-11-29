@@ -2,16 +2,14 @@ name: Instagram Botu
 
 on:
   schedule:
-    # Türkiye Saati (UTC+3) Ayarı:
-    # 12:00 TR -> 09:00 UTC
-    # 18:00 TR -> 15:00 UTC
-    # 18:47 TR -> 15:47 UTC  <-- GÜNCELLENDİ (18:36 yerine 18:47 oldu)
-    # 21:00 TR -> 18:00 UTC
-    - cron: '0 9 * * *'
-    - cron: '0 15 * * *'
-    - cron: '47 15 * * *'
-    - cron: '0 18 * * *'
-  workflow_dispatch: # Elle deneme butonu
+    # Türkiye Saati (UTC+3):
+    # 10:13 TR -> 07:13 UTC (Senin istediğin test saati)
+    # Diğer saatler: 15:00, 19:00, 23:00
+    - cron: '13 7 * * *'
+    - cron: '0 12 * * *'
+    - cron: '0 16 * * *'
+    - cron: '0 20 * * *'
+  workflow_dispatch: # Elle tetikleme butonu
 
 jobs:
   calistir:
@@ -26,7 +24,6 @@ jobs:
         run: pip install -r requirements.txt
       - name: Botu Calistir
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
           INSTA_USER: ${{ secrets.INSTA_USER }}
           INSTA_PASS: ${{ secrets.INSTA_PASS }}
