@@ -6,80 +6,67 @@ import random
 import google.generativeai as genai
 from instagrapi import Client
 
-# --- ŞİFRELERİ KASADAN ÇEKİYORUZ ---
+# --- ŞİFRELER ---
 GEMINI_KEY = os.environ['GEMINI_KEY']
 INSTA_USER = os.environ['INSTA_USER']
 INSTA_PASS = os.environ['INSTA_PASS']
-# Session opsiyoneldir, varsa kullanır yoksa şifreyle girer
 INSTA_SESSION = os.environ.get('INSTA_SESSION')
 
 # --- AYARLAR ---
 genai.configure(api_key=GEMINI_KEY)
 model = genai.GenerativeModel('gemini-pro')
 
-# --- KONU HAVUZU ---
+# --- KONULAR ---
 KONULAR = [
-    "Tarihin Çözülememiş Gizemleri",
-    "Korkunç Mitolojik Yaratıklar",
-    "Uzay ve Evrenin Sırları",
-    "Antik Uygarlıkların Teknolojileri",
-    "Lanetli Yerler ve Olaylar",
-    "Paranormal Fenomenler",
-    "Arkeolojik Keşifler"
+    "Tarihin Çözülememiş Gizemleri", "Korkunç Mitolojik Yaratıklar",
+    "Uzay ve Evrenin Sırları", "Antik Uygarlıkların Teknolojileri",
+    "Lanetli Yerler", "Paranormal Olaylar", "Arkeolojik Keşifler"
 ]
 
 def icerik_uret():
-    print("🧠 Gemini (Belgesel Editörü) 10 sayfalık dev konuyu araştırıyor...")
-    secilen_konu = random.choice(KONULAR)
+    print("🧠 Gemini içerik üretiyor...")
+    konu = random.choice(KONULAR)
     
-    # --- PROMPT (TAMAMLANMIŞ HALİ) ---
     prompt = f"""
-    Sen profesyonel bir tarih ve gizem belgeseli yapımcısısın.
-    Konu: {secilen_konu}.
+    Sen bir belgesel yapımcısısın. Konu: {konu}.
+    Görevin: İnsanları şok edecek, çok detaylı bir Instagram kaydırmalı post içeriği hazırla.
     
-    Görevin:
-    1. Bu konuda çok detaylı, insanı şok edecek bir olay seç.
-    2. Instagram için 10 GÖRSELLİ, hikaye anlatan bir kaydırmalı (Carousel) post hazırla.
-    3. Bana SADECE aşağıdaki JSON formatında cevap ver:
-    
+    SADECE şu JSON formatında cevap ver:
     {{
-      "baslik": "İlgi çekici bir başlık (Türkçe)",
-      "aciklama": "Konuyu çok detaylı anlatan, 6-7 paragraflık ansiklopedik bir yazı (Türkçe). En sona etiketleri ekle.",
+      "baslik": "Türkçe Başlık",
+      "aciklama": "Konuyu anlatan çok detaylı Türkçe metin. En sona hashtagler.",
       "gorsel_komutlari": [
-        "1. görsel (Kapak) için İngilizce prompt (Çok etkileyici, 8k, cinematic, vertical)",
-        "2. görsel (Giriş) için İngilizce prompt (Olayın başlangıcı, vertical)",
-        "3. görsel (Detay 1) için İngilizce prompt (vertical)",
-        "4. görsel (Detay 2) için İngilizce prompt (vertical)",
-        "5. görsel (Atmosfer) için İngilizce prompt (vertical)",
-        "6. görsel (Karakter/Mekan) için İngilizce prompt (vertical)",
-        "7. görsel (Gizem unsuru) için İngilizce prompt (vertical)",
-        "8. görsel (Dramatik an) için İngilizce prompt (vertical)",
-        "9. görsel (Sonuç/Soru işareti) için İngilizce prompt (vertical)",
-        "10. görsel (Final/Sembolik kapak) için İngilizce prompt (vertical)"
+        "1. resim için İngilizce prompt (vertical, 8k, cinematic)",
+        "2. resim için İngilizce prompt (vertical)",
+        "3. resim için İngilizce prompt (vertical)",
+        "4. resim için İngilizce prompt (vertical)",
+        "5. resim için İngilizce prompt (vertical)",
+        "6. resim için İngilizce prompt (vertical)",
+        "7. resim için İngilizce prompt (vertical)",
+        "8. resim için İngilizce prompt (vertical)",
+        "9. resim için İngilizce prompt (vertical)",
+        "10. resim için İngilizce prompt (vertical)"
       ]
     }}
     """
-    
     try:
         response = model.generate_content(prompt)
         text = response.text.replace("```json", "").replace("```", "").strip()
-        data = json.loads(text)
-        print(f"✅ Konu Bulundu (10 Görselli): {data['baslik']}")
-        return data
+        return json.loads(text)
     except Exception as e:
         print(f"❌ Gemini Hatası: {e}")
         return None
 
 def resim_ciz(prompt, dosya_adi):
     print(f"🎨 Çiziliyor: {dosya_adi}...")
-    # Pollinations Flux Modeli (Sınırsız, Ücretsiz, Yüksek Kalite)
-    prompt_encoded = requests.utils.quote(f"{prompt}, vertical, 8k resolution, photorealistic, masterpiece, cinematic lighting, sharp focus")
+    prompt_encoded = requests.utils.quote(f"{prompt}, vertical, 8k, photorealistic, cinematic")
     seed = random.randint(1, 1000000)
-    # Boyut: 1080x1350 (Instagram Dikey)
+    # Pollinations Flux Modeli
     url = f"https://pollinations.ai/p/{prompt_encoded}?width=1080&height=1350&model=flux&seed={seed}&nologo=true&enhance=true"
     
     try:
-        response = requests.get(url, timeout=90) # 90 saniye bekleme süresi
+        # Zaman aşımını 120 saniyeye çıkardık (Daha sabırlı olsun diye)
+        response = requests.get(url, timeout=120)
         if response.status_code == 200:
             with open(dosya_adi, 'wb') as f:
                 f.write(response.content)
@@ -89,59 +76,46 @@ def resim_ciz(prompt, dosya_adi):
         return False
 
 def main_job():
-    # 1. İçerik Al
     data = icerik_uret()
     if not data: return
 
-    # 2. Resimleri Çiz
     resim_listesi = []
-    print(f"📸 {len(data['gorsel_komutlari'])} adet görsel hazırlanıyor (Bulut Sunucuda)...")
-    print("Not: 10 resim çizmek 3-5 dakika sürebilir, lütfen bekleyin.")
+    print("📸 10 Resim hazırlanıyor (Sabırlı olun)...")
     
     for i, prompt in enumerate(data['gorsel_komutlari']):
         dosya_adi = f"resim_{i+1}.jpg"
+        # Her resim çizildikten sonra 5 saniye dinlen (Hata vermemesi için)
         if resim_ciz(prompt, dosya_adi):
             resim_listesi.append(dosya_adi)
-            # Her resim arası 3 saniye bekle ki sunucu yorulmasın
-            time.sleep(3) 
-    
+            time.sleep(5) 
+        else:
+            print(f"⚠️ {dosya_adi} çizilemedi, atlanıyor.")
+
     if len(resim_listesi) < 2:
-        print("❌ Yeterli resim çizilemedi (En az 2 lazım).")
+        print("❌ Yeterli resim yok, işlem iptal.")
         return
 
-    # 3. Instagram'a Yükle
-    print(f"🚀 Instagram'a {len(resim_listesi)} adet resim yükleniyor...")
+    print(f"🚀 {len(resim_listesi)} resim Instagram'a yükleniyor...")
     cl = Client()
     
     try:
-        # Önce Session (Bilet) ile girmeyi dene, yoksa Şifre ile
-        giris_basarili = False
-        
         if INSTA_SESSION:
             try:
-                print("🎫 Session ile giriş deneniyor...")
                 cl.set_settings(json.loads(INSTA_SESSION))
                 cl.login(INSTA_USER, INSTA_PASS)
-                giris_basarili = True
-            except Exception as e:
-                print(f"⚠️ Session hatası: {e}. Normal giriş deneniyor...")
-        
-        if not giris_basarili:
-            print("🔑 Kullanıcı adı/Şifre ile giriş deneniyor...")
+            except:
+                cl.login(INSTA_USER, INSTA_PASS)
+        else:
             cl.login(INSTA_USER, INSTA_PASS)
 
-        print("✅ Giriş Başarılı!")
-        
-        # Albüm Yükle
         cl.album_upload(
             paths=resim_listesi,
             caption=f"📢 {data['baslik']}\n\n{data['aciklama']}"
         )
-        print("🎉 TEBRİKLER! 10 GÖRSELLİ ALBÜM PAYLAŞILDI!")
+        print("✅ BAŞARIYLA PAYLAŞILDI!")
         
     except Exception as e:
-        print(f"❌ Instagram Paylaşım Hatası: {e}")
-        print("Detaylı hata loglarına bakınız.")
+        print(f"❌ Instagram Hatası: {e}")
 
 if __name__ == "__main__":
     main_job()
