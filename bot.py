@@ -1,129 +1,117 @@
 import os
-import json
-import time
 import requests
-import random
-import google.generativeai as genai
 from instagrapi import Client
+import google.generativeai as genai
 
-# --- ŞİFRELER (KASADAN ÇEKİLİR) ---
-GEMINI_KEY = os.environ['GEMINI_KEY']
-INSTA_USER = os.environ['INSTA_USER']
-INSTA_PASS = os.environ['INSTA_PASS']
-INSTA_SESSION = os.environ.get('INSTA_SESSION')
 
-# --- AYARLAR ---
+# ----------------------------------
+# ENVIRONMENT SECRETS (GitHub)
+# ----------------------------------
+GEMINI_KEY = os.getenv("GEMINI_KEY")
+IG_USER = os.getenv("INSTA_USER")
+IG_PASS = os.getenv("INSTA_PASS")
+IG_SESSION = os.getenv("INSTA_SES")
+
 genai.configure(api_key=GEMINI_KEY)
-# Hata vermeyen garanti model
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel("gemini-2.0-flash")
 
-# --- KONULAR ---
-KONULAR = [
-    "Tarihin Çözülememiş Gizemleri", "Korkunç Mitolojik Yaratıklar",
-    "Uzay ve Evrenin Sırları", "Antik Uygarlıkların Teknolojileri",
-    "Lanetli Yerler", "Paranormal Olaylar", "Arkeolojik Keşifler",
-    "Kayıp Kıtalar ve Şehirler", "Simya ve Yasaklı Bilgiler"
-]
 
-def icerik_uret():
-    print("🧠 Gemini içerik üretiyor...")
-    secilen_konu = random.choice(KONULAR)
-    
-    prompt = f"""
-    Sen profesyonel bir tarih ve gizem belgeseli yapımcısısın. Konu: {secilen_konu}.
-    
-    Görevin:
-    1. Bu konuda çok az bilinen, insanı şok edecek bir olay seç.
-    2. Instagram için 10 GÖRSELLİ, hikaye anlatan bir kaydırmalı (Carousel) post hazırla.
-    3. Bana SADECE aşağıdaki JSON formatında cevap ver:
-    
-    {{
-      "baslik": "İlgi çekici bir başlık (Türkçe)",
-      "aciklama": "Konuyu detaylı anlatan, 5-6 paragraflık ansiklopedik yazı (Türkçe). En sona etiketleri ekle.",
-      "gorsel_komutlari": [
-        "1. görsel prompt (vertical, 8k, cinematic, photorealistic)",
-        "2. görsel prompt (vertical)",
-        "3. görsel prompt (vertical)",
-        "4. görsel prompt (vertical)",
-        "5. görsel prompt (vertical)",
-        "6. görsel prompt (vertical)",
-        "7. görsel prompt (vertical)",
-        "8. görsel prompt (vertical)",
-        "9. görsel prompt (vertical)",
-        "10. görsel prompt (vertical)"
-      ]
-    }}
+# ----------------------------------
+# Generate 10 mysterious topics
+# ----------------------------------
+def generate_topics():
+    prompt = """
+    Create 10 unique mysterious and historical topics.
+    Themes must include: ancient mysteries, lost civilizations, 
+    unexplained events, vanished cultures, mythological enigmas,
+    lost ships, strange artifacts, forgotten kingdoms.
+    Only provide a list of 10 titles.
     """
-    try:
-        response = model.generate_content(prompt)
-        text = response.text.replace("```json", "").replace("```", "").strip()
-        return json.loads(text)
-    except Exception as e:
-        print(f"❌ Gemini Hatası: {e}")
-        return None
+    raw = model.generate_content(prompt).text
+    topics = [t.strip("-• ") for t in raw.split("\n") if t.strip()]
+    return topics[:10]
 
-def resim_ciz(prompt, dosya_adi):
-    print(f"🎨 Çiziliyor: {dosya_adi}...")
-    prompt_encoded = requests.utils.quote(f"{prompt}, vertical, 8k resolution, photorealistic")
-    seed = random.randint(1, 1000000)
-    url = f"https://pollinations.ai/p/{prompt_encoded}?width=1080&height=1350&model=flux&seed={seed}&nologo=true&enhance=true"
-    
-    try:
-        response = requests.get(url, timeout=120)
-        if response.status_code == 200:
-            with open(dosya_adi, 'wb') as f:
-                f.write(response.content)
-            return True
-        return False
-    except:
-        return False
 
-def main_job():
-    data = icerik_uret()
-    if not data: return
+# ----------------------------------
+# Generate cinematic AI prompt
+# ----------------------------------
+def generate_prompt(topic):
+    prompt = f"""
+    Create a cinematic, dark, realistic image prompt based on:
+    {topic}
+    Requirements: atmospheric fog, dramatic shadows, ancient mystery mood,
+    ultra-detailed, photorealistic, high contrast.
+    """
+    return model.generate_content(prompt).text.strip()
 
-    resim_listesi = []
-    print("📸 10 Resim hazırlanıyor...")
-    
-    for i, prompt in enumerate(data['gorsel_komutlari']):
-        dosya_adi = f"resim_{i+1}.jpg"
-        if resim_ciz(prompt, dosya_adi):
-            resim_listesi.append(dosya_adi)
-            time.sleep(2)
-        else:
-            print(f"⚠️ {dosya_adi} çizilemedi.")
 
-    if len(resim_listesi) < 2:
-        print("❌ Yeterli resim yok.")
-        return
+# ----------------------------------
+# Generate caption + hashtags
+# ----------------------------------
+def generate_caption_and_tags(topic):
+    prompt = f"""
+    Create an Instagram caption for: {topic}
+    Style: dark, mysterious, atmospheric, short but impactful.
+    Then give 10 relevant hashtags.
 
-    print("🚀 Instagram'a yükleniyor...")
+    Format:
+    CAPTION: <text>
+    TAGS: <hashtags>
+    """
+    text = model.generate_content(prompt).text
+    parts = text.split("TAGS:")
+    caption = parts[0].replace("CAPTION:", "").strip()
+    tags = parts[1].strip().replace("\n", " ")
+    return caption, tags
+
+
+# ----------------------------------
+# Pollinations: Generate image
+# ----------------------------------
+def generate_image(prompt, idx):
+    print(f"Generating image {idx + 1}/10")
+    url = f"https://image.pollinations.ai/prompt/{prompt}"
+    data = requests.get(url).content
+
+    filename = f"img_{idx}.jpg"
+    with open(filename, "wb") as f:
+        f.write(data)
+    return filename
+
+
+# ----------------------------------
+# Instagram Login (Cookie or Password)
+# ----------------------------------
+def insta_login():
     cl = Client()
-    
     try:
-        # Önce Session (Pasaport) ile gir
-        if INSTA_SESSION:
-            try:
-                print("🎫 Pasaport kullanılıyor...")
-                cl.set_settings(json.loads(INSTA_SESSION))
-                cl.login(INSTA_USER, INSTA_PASS)
-            except:
-                print("⚠️ Pasaport geçersiz, şifre ile deneniyor...")
-                cl.login(INSTA_USER, INSTA_PASS)
-        else:
-            print("🔑 Şifre ile giriliyor...")
-            cl.login(INSTA_USER, INSTA_PASS)
+        cl.login(IG_USER, IG_PASS)
+    except:
+        cl.set_settings({"sessionid": IG_SESSION})
+        cl.login(IG_USER, IG_PASS)
+    return cl
 
-        print("✅ Giriş Başarılı!")
-        
-        cl.album_upload(
-            paths=resim_listesi,
-            caption=f"📢 {data['baslik']}\n\n{data['aciklama']}"
-        )
-        print("🎉 TEBRİKLER! GÖNDERİ PAYLAŞILDI!")
-        
-    except Exception as e:
-        print(f"❌ Instagram Hatası: {e}")
 
+# ----------------------------------
+# MAIN BOT LOGIC
+# ----------------------------------
 if __name__ == "__main__":
-    main_job()
+    cl = insta_login()
+
+    topics = generate_topics()
+    final_caption = ""
+    images = []
+
+    for i, topic in enumerate(topics):
+        prompt = generate_prompt(topic)
+        img_path = generate_image(prompt, i)
+
+        images.append(img_path)
+
+        caption, tags = generate_caption_and_tags(topic)
+        final_caption += f"\n\n{topic}\n{caption}\n{tags}"
+
+    # Upload as a multi-image carousel
+    cl.album_upload(images, caption=final_caption)
+
+    print("INSTAGRAM POST SUCCESSFULLY PUBLISHED.")
