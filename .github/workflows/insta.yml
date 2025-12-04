@@ -1,31 +1,30 @@
-name: Instagram Bot
+name: Instagram Auto Poster
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */3 * * *"   # runs every 3 hours
+    - cron: "0 */12 * * *"   # Günde 2 kez paylaşım
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install requirements
         run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install instagrapi requests
 
-      - name: Run Instagram bot
+      - name: Run bot
         env:
-          IG_USERNAME: ${{ secrets.IG_USERNAME }}
-          IG_PASSWORD: ${{ secrets.IG_PASSWORD }}
-        run: |
-          python bot.py
+          INSTA_USER: ${{ secrets.INSTA_USER }}
+          INSTA_PASS: ${{ secrets.INSTA_PASS }}
+          INSTA_SESSION: ${{ secrets.INSTA_SESSION }}
+        run: python bot.py
