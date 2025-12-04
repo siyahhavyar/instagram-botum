@@ -1,3 +1,5 @@
-requests
 google-generativeai
-instagrapi
+tweepy
+requests
+pillow
+perchance  # Opsiyonel, fallback var
