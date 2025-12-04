@@ -1,154 +1,103 @@
+# bot.py  →  Instagram için sınırsız AI bot (2025 güncel)
 import os
 import requests
 import random
-import base64
-import google.generativeai as genai
-import tweepy
-import asyncio
 import io
+import base64
 from PIL import Image
-# Perchance unofficial API için pip install perchance gerekebilir, ama basit requests ile de yapılabilir
-# GitHub Secrets'ten gelenler: GEMINI_KEY, API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_SECRET
-# BU KODDA YENİ KEY YOK - sadece Gemini ve Twitter için eskiler
+import google.generativeai as genai
 
-GEMINI_KEY      = os.getenv("GEMINI_KEY")
-API_KEY         = os.getenv("API_KEY")
-API_SECRET      = os.getenv("API_SECRET")
-ACCESS_TOKEN    = os.getenv("ACCESS_TOKEN")
-ACCESS_SECRET   = os.getenv("ACCESS_SECRET")
+# Tek gereken secret → GEMINI_KEY (ücretsiz alınıyor)
+GEMINI_KEY = os.getenv("GEMINI_KEY")
+if not GEMINI_KEY:
+    print("EKSİK: GEMINI_KEY → GitHub Secrets'e ekle!")
+    exit(1)
 
-# Eksik key varsa hemen çıksın (sadece gerekli olanlar)
-for var in ["GEMINI_KEY","API_KEY","API_SECRET","ACCESS_TOKEN","ACCESS_SECRET"]:
-    if not os.getenv(var):
-        print(f"EKSİK: {var}")
-        exit(1)
+genai.configure(api_key=GEMINI_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')   # en hızlı ve ucuz
 
-def get_prompt_caption():
-    genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel('gemini-2.5-flash')  # Güncel model, stabil ve hızlı
-    themes = ["Cyberpunk Tokyo","Neon Forest","Space Nebula","Crystal Cave","Floating Islands","Golden Desert"]
+def create_prompt_and_caption():
+    themes = ["Pastel kahve masası","Neon Tokyo gece","Dreamy bulutlar","Minimalist beyaz oda","Golden hour gün batımı","Crystal deniz altı"]
     theme = random.choice(themes)
-    resp = model.generate_content(f"Tema: {theme} → Ücretsiz AI generator (Perchance/Raphael) için ultra detaylı prompt + kısa caption. Format: PROMPT: [...] ||| CAPTION: [...]").text
+    text = f"""
+    Tema: {theme}
+    Görev: Instagram post’u için ultra kaliteli, estetik bir AI resim prompt’u yaz.
+    Aynı zamanda 1-2 cümlelik Türkçe cool bir caption da yaz.
+    Format tam olarak şöyle olsun:
+    PROMPT: [buraya detaylı İngilizce prompt]
+    CAPTION: [buraya Türkçe caption + 6-8 emoji]
+    """
+    resp = model.generate_content(text).text
     try:
-        p, c = resp.split("|||")
-        prompt = p.replace("PROMPT:", "").strip() + ", 8k, ultra detailed, masterpiece, high quality"
-        caption = c.replace("CAPTION:", "").strip()
+        prompt_part = resp.split("PROMPT:")[1].split("CAPTION:")[0].strip()
+        caption_part = resp.split("CAPTION:")[1].strip()
+        prompt = prompt_part + ", highly detailed, sharp focus, 8k, instagram aesthetic, perfect composition"
+        return prompt, caption_part
     except:
-        prompt = "cyberpunk city night rain reflections, ultra detailed, 8k, masterpiece"
-        caption = "Neon rain vibes ✨"
-    return prompt, caption
+        return "aesthetic coffee on pastel table, morning light, 8k, ultra detailed", "Sabahın en güzel anı ☕✨ #CoffeeTime #Aesthetic"
 
-# PERCHANCE → HD Üretim (1024x1024, sınırsız, no key)
-# Unofficial API: https://github.com/eeemoon/perchance (pip install perchance) veya direkt requests ile
-async def perchance_image(prompt):
-    print("Perchance HD resim üretiyor... (Sınırsız & Ücretsiz)")
+# 1. Puter.js (en güçlü, en hızlı, sınırsız)
+def puter_image(prompt):
+    print("Puter.js ile üretiliyor... (SD3 + Flux)")
     try:
-        # pip install perchance varsa kullan, yoksa basit requests fallback
-        try:
-            import perchance
-            gen = perchance.ImageGenerator()
-            async with await gen.image(prompt) as result:
-                binary = await result.download()
-                return binary
-        except ImportError:
-            # Fallback: Direkt URL fetch (Perchance web API'si gibi)
-            url = f"https://perchance.org/ai-text-to-image-generator-image?query={requests.utils.quote(prompt)}&width=1024&height=1024&seed={random.randint(1,1000000)}"
-            r = requests.get(url, timeout=90)
-            if r.status_code == 200:
-                # Varsayım: URL resim döner, yoksa parse et
-                img_resp = requests.get(url, timeout=60)
-                if img_resp.status_code == 200:
-                    return img_resp.content
-            return None
-    except Exception as e:
-        print(f"Perchance hata: {e}")
-        return None
+        url = f"https://image.puter.com/v2/generate?prompt={requests.utils.quote(prompt)}&width=1024&height=1024&model=sd3"
+        r = requests.get(url, timeout=60)
+        if r.status_code == 200:
+            return r.content
+    except: pass
+    return None
 
-# RAPHAEL → Yedek Üretim (sınırsız, no key, hızlı)
+# 2. Perchance (asla kapanmaz)
+def perchance_image(prompt):
+    print("Perchance yedek...")
+    try:
+        url = f"https://perchance.org/ai-text-to-image-generator-image?query={requests.utils.quote(prompt + ' --ar 1:1')}&width=1024&height=1024"
+        r = requests.get(url, timeout=60)
+        if len(r.content) > 5000:  # boş resim değilse
+            return r.content
+    except: pass
+    return None
+
+# 3. Raphael
 def raphael_image(prompt):
-    print("Raphael yedek üretim... (Sınırsız & Ücretsiz)")
+    print("Raphael yedek...")
     try:
-        # Direkt URL API (2025 docs'a göre no key)
-        url = f"https://raphael.app/api/generate?prompt={requests.utils.quote(prompt)}&width=1024&height=1024"
-        r = requests.get(url, timeout=90)
-        if r.status_code == 200:
-            data = r.json()
-            if 'image' in data:
-                img_url = data['image']
-                return requests.get(img_url, timeout=60).content
-        return None
-    except Exception as e:
-        print(f"Raphael hata: {e}")
-        return None
+        r = requests.get(f"https://raphael.app/api/generate?prompt={requests.utils.quote(prompt)}&width=1024&height=1024", timeout=60)
+        data = r.json()
+        if 'image' in data:
+            return requests.get(data['image']).content
+    except: pass
+    return None
 
-# VHEER → Son yedek (sınırsız, no key)
-def vheer_image(prompt):
-    print("Vheer son yedek... (Sınırsız & Ücretsiz)")
-    try:
-        url = f"https://vheer.com/generate?prompt={requests.utils.quote(prompt)}&model=flux&width=1024&height=1024"
-        r = requests.get(url, timeout=90)
-        if r.status_code == 200:
-            data = r.json()
-            if 'url' in data:
-                return requests.get(data['url'], timeout=60).content
-        return None
-    except Exception as e:
-        print(f"Vheer hata: {e}")
-        return None
+# Basit 2× upscale (PIL ile)
+def upscale_2x(img_bytes):
+    img = Image.open(io.BytesIO(img_bytes))
+    w, h = img.size
+    img = img.resize((w*2, h*2), Image.LANCZOS)
+    output = io.BytesIO()
+    img.save(output, format='PNG', quality=95)
+    return output.getvalue()
 
-# Basit upscale (PIL ile 2x, ücretsiz - Pixelcut yerine, key yok)
-def simple_upscale(img_bytes, scale=2):
-    print("PIL ile basit upscale (2x)...")
-    try:
-        img = Image.open(io.BytesIO(img_bytes))
-        w, h = img.size
-        upscaled = img.resize((w*scale, h*scale), Image.LANCZOS)
-        output = io.BytesIO()
-        upscaled.save(output, format='JPEG', quality=95)
-        return output.getvalue()
-    except:
-        return img_bytes  # Hata olursa orijinal dön
+# ANA
+def main():
+    print("\nINSTAGRAM SINIRSIZ AI BOT ÇALIŞIYOR\n")
+    prompt, caption = create_prompt_and_caption()
+    print(f"Prompt: {prompt[:100]}...")
+    print(f"Caption: {caption}\n")
 
-# TWEET (aynı)
-def tweet(img_bytes, text):
-    fn = "wall.jpg"
-    with open(fn,"wb") as f:
-        f.write(img_bytes)
-    auth = tweepy.OAuthHandler(API_KEY, API_SECRET)
-    auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
-    api = tweepy.API(auth)
-    media = api.media_upload(fn)
-    client = tweepy.Client(consumer_key=API_KEY, consumer_secret=API_SECRET,
-                           access_token=ACCESS_TOKEN, access_token_secret=ACCESS_SECRET)
-    client.create_tweet(text=text + " #AIArt #SınırsızAI #InstagramVibes", media_ids=[media.media_id])
-    print("TWEET ATILDI! 🚀")
-    os.remove(fn)
-
-# ANA - Failover sistemi
-async def main():
-    print("\nSINI RSIZ AI BOT ÇALIŞIYOR (Perchance + Raphael + Vheer, No Key!)\n")
-    prompt, caption = get_prompt_caption()
-    print(f"Prompt: {prompt}\nCaption: {caption}")
-
-    # 1. Perchance dene
-    img = await perchance_image(prompt)
+    img = puter_image(prompt) or perchance_image(prompt) or raphael_image(prompt)
     if not img:
-        print("Perchance başarısız, Raphael'e geç...")
-        # 2. Raphael
-        img = raphael_image(prompt)
-    if not img:
-        print("Raphael başarısız, Vheer'e geç...")
-        # 3. Vheer
-        img = vheer_image(prompt)
-    if not img:
-        print("Tüm generator'lar başarısız, çıkılıyor.")
+        print("Tüm servisler başarısız!")
         exit(1)
 
-    # Upscale (basit PIL)
-    final = simple_upscale(img, scale=2)  # 2048x2048 yapar
+    final_img = upscale_2x(img)  # 2048×2048 yapıyoruz
+    filename = "instagram_post.png"
+    with open(filename, "wb") as f:
+        f.write(final_img)
 
-    # Tweet at
-    tweet(final, caption)
+    print(f"Resim kaydedildi → {filename}")
+    print(f"Caption → {caption}")
+    print("Şimdi bunu telefonundan Instagram’a atabilirsin!")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
