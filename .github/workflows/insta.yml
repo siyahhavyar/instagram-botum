@@ -1,24 +1,23 @@
-name: Sınırsız AI Bot
+name: Instagram AI Bot
 on:
+  workflow_dispatch:      # manuel çalıştırmak için
   schedule:
-    - cron: '0 12 * * *'  # Her gün öğlen
-  workflow_dispatch:  # Manuel tetikle
+    - cron: '0 9 * * *'   # her sabah 09:00’da otomatik çalışsın
+
 jobs:
-  run:
+  generate:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-    - name: Install deps
-      run: pip install -r requirements.txt
-    - name: Run bot
-      run: python bot.py
-      env:
-        GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
-        API_KEY: ${{ secrets.API_KEY }}
-        API_SECRET: ${{ secrets.API_SECRET }}
-        ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-        ACCESS_SECRET: ${{ secrets.ACCESS_SECRET }}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: python bot.py
+        env:
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+      - name: Upload resim
+        uses: actions/upload-artifact@v4
+        with:
+          name: instagram-post
+          path: instagram_post.png
