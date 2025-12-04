@@ -1,5 +1,3 @@
 google-generativeai
-tweepy
-requests
 pillow
-perchance  # Opsiyonel, fallback var
+requests
