@@ -1,9 +1,8 @@
-# bot.py  →  Instagram için sınırsız AI bot (2025 güncel)
+# bot.py  →  Instagram için sınırsız AI bot (Aralık 2025 güncel)
 import os
 import requests
 import random
 import io
-import base64
 from PIL import Image
 import google.generativeai as genai
 
@@ -14,7 +13,7 @@ if not GEMINI_KEY:
     exit(1)
 
 genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')   # en hızlı ve ucuz
+model = genai.GenerativeModel('gemini-2.5-flash')   # GÜNCEL MODEL: 1.5 emekli, 2.5 stabil ve daha iyi
 
 def create_prompt_and_caption():
     themes = ["Pastel kahve masası","Neon Tokyo gece","Dreamy bulutlar","Minimalist beyaz oda","Golden hour gün batımı","Crystal deniz altı"]
@@ -42,7 +41,7 @@ def puter_image(prompt):
     try:
         url = f"https://image.puter.com/v2/generate?prompt={requests.utils.quote(prompt)}&width=1024&height=1024&model=sd3"
         r = requests.get(url, timeout=60)
-        if r.status_code == 200:
+        if r.status_code == 200 and len(r.content) > 1000:
             return r.content
     except: pass
     return None
@@ -53,7 +52,7 @@ def perchance_image(prompt):
     try:
         url = f"https://perchance.org/ai-text-to-image-generator-image?query={requests.utils.quote(prompt + ' --ar 1:1')}&width=1024&height=1024"
         r = requests.get(url, timeout=60)
-        if len(r.content) > 5000:  # boş resim değilse
+        if r.status_code == 200 and len(r.content) > 5000:  # Boş değilse
             return r.content
     except: pass
     return None
@@ -63,20 +62,25 @@ def raphael_image(prompt):
     print("Raphael yedek...")
     try:
         r = requests.get(f"https://raphael.app/api/generate?prompt={requests.utils.quote(prompt)}&width=1024&height=1024", timeout=60)
-        data = r.json()
-        if 'image' in data:
-            return requests.get(data['image']).content
+        if r.status_code == 200:
+            data = r.json()
+            if 'image' in data:
+                return requests.get(data['image'], timeout=60).content
     except: pass
     return None
 
-# Basit 2× upscale (PIL ile)
+# Basit 2× upscale (PIL ile, daha kaliteli)
 def upscale_2x(img_bytes):
-    img = Image.open(io.BytesIO(img_bytes))
-    w, h = img.size
-    img = img.resize((w*2, h*2), Image.LANCZOS)
-    output = io.BytesIO()
-    img.save(output, format='PNG', quality=95)
-    return output.getvalue()
+    print("PIL ile 2x upscale...")
+    try:
+        img = Image.open(io.BytesIO(img_bytes))
+        w, h = img.size
+        img = img.resize((w*2, h*2), Image.Resampling.LANCZOS)  # Daha iyi resampling
+        output = io.BytesIO()
+        img.save(output, format='PNG', quality=95, optimize=True)
+        return output.getvalue()
+    except:
+        return img_bytes  # Hata olursa orijinal dön
 
 # ANA
 def main():
@@ -87,7 +91,7 @@ def main():
 
     img = puter_image(prompt) or perchance_image(prompt) or raphael_image(prompt)
     if not img:
-        print("Tüm servisler başarısız!")
+        print("Tüm servisler başarısız! İnternet veya servis yoğunluğu olabilir.")
         exit(1)
 
     final_img = upscale_2x(img)  # 2048×2048 yapıyoruz
@@ -95,9 +99,9 @@ def main():
     with open(filename, "wb") as f:
         f.write(final_img)
 
-    print(f"Resim kaydedildi → {filename}")
-    print(f"Caption → {caption}")
-    print("Şimdi bunu telefonundan Instagram’a atabilirsin!")
+    print(f"✅ Resim kaydedildi → {filename}")
+    print(f"📝 Caption → {caption}")
+    print("📱 Şimdi bunu telefonundan Instagram’a atabilirsin! (Actions > Artifacts'tan indir)")
 
 if __name__ == "__main__":
     main()
