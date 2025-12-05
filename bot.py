@@ -1,10 +1,11 @@
-# bot.py  →  Instagram için sınırsız AI bot (Aralık 2025 güncel)
+# bot.py  →  Instagram için sınırsız AI bot (Aralık 2025 güncel - Servisler düzeltildi!)
 import os
 import requests
 import random
 import io
 from PIL import Image
 import google.generativeai as genai
+import asyncio
 
 # Tek gereken secret → GEMINI_KEY (ücretsiz alınıyor)
 GEMINI_KEY = os.getenv("GEMINI_KEY")
@@ -13,7 +14,7 @@ if not GEMINI_KEY:
     exit(1)
 
 genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash')   # GÜNCEL MODEL: 1.5 emekli, 2.5 stabil ve daha iyi
+model = genai.GenerativeModel('gemini-2.5-flash')   # GÜNCEL MODEL: Stabil ve hızlı
 
 def create_prompt_and_caption():
     themes = ["Pastel kahve masası","Neon Tokyo gece","Dreamy bulutlar","Minimalist beyaz oda","Golden hour gün batımı","Crystal deniz altı"]
@@ -35,38 +36,56 @@ def create_prompt_and_caption():
     except:
         return "aesthetic coffee on pastel table, morning light, 8k, ultra detailed", "Sabahın en güzel anı ☕✨ #CoffeeTime #Aesthetic"
 
-# 1. Puter.js (en güçlü, en hızlı, sınırsız)
-def puter_image(prompt):
-    print("Puter.js ile üretiliyor... (SD3 + Flux)")
+# 1. Pollination (en stabil, sınırsız, direkt URL API - ana servis)
+def pollination_image(prompt):
+    print("Pollinations ile üretiliyor... (Sınırsız & Hızlı)")
     try:
-        url = f"https://image.puter.com/v2/generate?prompt={requests.utils.quote(prompt)}&width=1024&height=1024&model=sd3"
+        url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(prompt)}?width=1024&height=1024&nologo=true&seed={random.randint(1,1000000)}"
         r = requests.get(url, timeout=60)
-        if r.status_code == 200 and len(r.content) > 1000:
+        if r.status_code == 200:
             return r.content
-    except: pass
+    except Exception as e:
+        print(f"Pollinations hata: {e}")
     return None
 
-# 2. Perchance (asla kapanmaz)
+# 2. Perchance (GitHub unofficial API ile)
 def perchance_image(prompt):
-    print("Perchance yedek...")
+    print("Perchance yedek... (Unofficial API)")
     try:
-        url = f"https://perchance.org/ai-text-to-image-generator-image?query={requests.utils.quote(prompt + ' --ar 1:1')}&width=1024&height=1024"
-        r = requests.get(url, timeout=60)
-        if r.status_code == 200 and len(r.content) > 5000:  # Boş değilse
-            return r.content
-    except: pass
+        # Unofficial perchance kütüphanesi yüklü değilse, basit web hack fallback
+        # Önce kütüphane dene (requirements'a ekle: pip install perchance)
+        try:
+            import perchance
+            gen = perchance.ImageGenerator()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            async def gen_img():
+                async with await gen.image(prompt) as result:
+                    return await result.download()
+            binary = loop.run_until_complete(gen_img())
+            return binary
+        except ImportError:
+            # Fallback: Web scraping ile (ama yavaş, sadece test için)
+            url = f"https://perchance.org/ai-text-to-image-generator"
+            # Basit GET ile prompt gönder, ama unofficial yok - alternatif kullan
+            print("Perchance kütüphanesi yok, atlanıyor.")
+            return None
+    except Exception as e:
+        print(f"Perchance hata: {e}")
     return None
 
-# 3. Raphael
-def raphael_image(prompt):
-    print("Raphael yedek...")
+# 3. Vheer (yedek, sınırsız)
+def vheer_image(prompt):
+    print("Vheer yedek... (Flux tabanlı)")
     try:
-        r = requests.get(f"https://raphael.app/api/generate?prompt={requests.utils.quote(prompt)}&width=1024&height=1024", timeout=60)
+        url = f"https://vheer.com/generate?prompt={requests.utils.quote(prompt)}&model=flux&width=1024&height=1024"
+        r = requests.get(url, timeout=60)
         if r.status_code == 200:
             data = r.json()
-            if 'image' in data:
-                return requests.get(data['image'], timeout=60).content
-    except: pass
+            if 'url' in data:
+                return requests.get(data['url'], timeout=60).content
+    except Exception as e:
+        print(f"Vheer hata: {e}")
     return None
 
 # Basit 2× upscale (PIL ile, daha kaliteli)
@@ -75,7 +94,7 @@ def upscale_2x(img_bytes):
     try:
         img = Image.open(io.BytesIO(img_bytes))
         w, h = img.size
-        img = img.resize((w*2, h*2), Image.Resampling.LANCZOS)  # Daha iyi resampling
+        img = img.resize((w*2, h*2), Image.Resampling.LANCZOS)
         output = io.BytesIO()
         img.save(output, format='PNG', quality=95, optimize=True)
         return output.getvalue()
@@ -84,12 +103,12 @@ def upscale_2x(img_bytes):
 
 # ANA
 def main():
-    print("\nINSTAGRAM SINIRSIZ AI BOT ÇALIŞIYOR\n")
+    print("\nINSTAGRAM SINIRSIZ AI BOT ÇALIŞIYOR (Pollinations + Perchance + Vheer)\n")
     prompt, caption = create_prompt_and_caption()
     print(f"Prompt: {prompt[:100]}...")
     print(f"Caption: {caption}\n")
 
-    img = puter_image(prompt) or perchance_image(prompt) or raphael_image(prompt)
+    img = pollination_image(prompt) or perchance_image(prompt) or vheer_image(prompt)
     if not img:
         print("Tüm servisler başarısız! İnternet veya servis yoğunluğu olabilir.")
         exit(1)
