@@ -13,25 +13,21 @@ from instagrapi import Client
 INSTA_USER    = os.getenv("INSTA_USER")
 INSTA_PASS    = os.getenv("INSTA_PASS")
 GEMINI_KEY    = os.getenv("GEMINI_KEY")
-HORDE_KEY     = os.getenv("HORDE_API_KEY")
+# Kod senin belirlediğin ismi kullanıyor:
+HORDE_KEY     = os.getenv("HORDE_API_KEY") 
 GROQ_KEY      = os.getenv("GROQ_API_KEY")
 
 # Key kontrolü (Sadece bilgi amaçlı)
-if not HORDE_KEY or len(HORDE_KEY) < 10:
-    print("UYARI: Horde Key kısa veya yok. Anonim moda düşebilir.", flush=True)
-else:
-    print(f"BAŞARILI: Horde Key Algılandı ({HORDE_KEY[:5]}...)", flush=True)
+if not HORDE_KEY or len(HORDE_KEY) < 5:
+    print("⚠️ UYARI: Horde Key yok veya çok kısa. Anonim mod aktif.", flush=True)
+    HORDE_KEY = "0000000000"
 
 # -----------------------------
 # 1. FİKİR VE MAKALENİN YAZILMASI
 # -----------------------------
 def get_documentary_content():
-    """
-    Gizemli bir konu bulur ve makale yazar.
-    """
     instructions = """
     Act as a professional Documentary Narrator (National Geographic style).
-    
     STEP 1: Choose a mysterious topic (Lost Civilizations, Mythology, Deep Sea, Cursed Artifacts, Paranormal).
     STEP 2: Create a visual description for AI images (Atmospheric, Cinematic, Dark).
     STEP 3: Write an Instagram Caption:
@@ -40,20 +36,18 @@ def get_documentary_content():
     - 🔍 THE MYSTERY: What is unexplainable?
     - 🧠 DID YOU KNOW?: A fun/creepy fact.
     - #️⃣ HASHTAGS: 15 relevant tags.
-    
     OUTPUT FORMAT:
     PROMPT: <Visual description>
     CAPTION: <The text>
     """
 
-    # --- PLAN A: GEMINI (1.5 Flash - Stabil) ---
+    # --- PLAN A: GEMINI ---
     if GEMINI_KEY:
         try:
-            print("🧠 Plan A: Gemini (1.5 Flash) deneniyor...", flush=True)
+            print("🧠 Plan A: Gemini deneniyor...", flush=True)
             genai.configure(api_key=GEMINI_KEY)
             config = genai.types.GenerationConfig(temperature=1.1)
             model = genai.GenerativeModel("gemini-1.5-flash", generation_config=config)
-            
             response = model.generate_content(instructions)
             parts = response.text.split("CAPTION:")
             if len(parts) >= 2:
@@ -61,7 +55,7 @@ def get_documentary_content():
         except Exception as e:
             print(f"⚠️ Gemini Pas: {e}", flush=True)
 
-    # --- PLAN B: GROQ (Llama 3.3) ---
+    # --- PLAN B: GROQ ---
     if GROQ_KEY:
         try:
             print("🧠 Plan B: Groq deneniyor...", flush=True)
@@ -73,24 +67,23 @@ def get_documentary_content():
             }
             response = requests.post(url, headers=headers, json=data, timeout=30)
             if response.status_code == 200:
-                content = response.json()['choices'][0]['message']['content']
-                parts = content.split("CAPTION:")
+                parts = response.json()['choices'][0]['message']['content'].split("CAPTION:")
                 if len(parts) >= 2:
                     return parts[0].replace("PROMPT:", "").strip(), parts[1].strip()
         except Exception:
             pass
 
-    return "Ancient ruins in fog", "Mystery of the Ancients... 🌑 #History #Mystery"
+    return "Ancient mysterious ruins", "Mystery... #History"
 
 # -----------------------------
-# 2. 10 RESİMLİK ALBÜM ÜRETİMİ (HD KALİTE)
+# 2. 10 RESİMLİK ALBÜM ÜRETİMİ (AKILLI HATA YÖNETİMİ)
 # -----------------------------
 def generate_album_images(base_prompt, count=10):
-    print(f"🎨 {count} karelik Albüm çizimi başlıyor (HD Kalite)...", flush=True)
+    global HORDE_KEY # Global değişkeni güncellemek için
+    print(f"🎨 {count} karelik Albüm çizimi başlıyor...", flush=True)
     
     generated_files = []
     
-    # Base prompt'u Horde için süslüyoruz
     final_prompt = (
         f"{base_prompt}, "
         "photorealistic, 8k, cinematic lighting, national geographic style, "
@@ -100,35 +93,54 @@ def generate_album_images(base_prompt, count=10):
     
     for i in range(count):
         print(f"   ↳ Kare {i+1}/{count} işleniyor...", flush=True)
-        
         unique_seed = str(random.randint(1, 9999999999))
         
+        # Varsayılan ayarlar (HD Açık)
+        params = {
+            "sampler_name": "k_dpmpp_2m", 
+            "cfg_scale": 6,               
+            "width": 832,      
+            "height": 1024,      
+            "steps": 30,          
+            "seed": unique_seed, 
+            "post_processing": ["RealESRGAN_x4plus"] # Key varsa HD yap
+        }
+
+        # Eğer Key Anonim ise HD'yi baştan kapat
+        if HORDE_KEY == "0000000000":
+            params["post_processing"] = []
+            params["steps"] = 25
+
         payload = {
             "prompt": final_prompt,
-            "params": {
-                "sampler_name": "k_dpmpp_2m", 
-                "cfg_scale": 6,               
-                "width": 832,      
-                "height": 1024, # 4:5 Oranına yakın    
-                "steps": 30,    # Key olduğu için 30 step yapabiliriz, kalite artar.       
-                "seed": unique_seed, 
-                
-                # --- KEY SAHİPLERİ İÇİN HD ÖZELLİĞİ AÇIK ---
-                "post_processing": ["RealESRGAN_x4plus"] 
-            },
+            "params": params,
             "nsfw": False,
             "censor_nsfw": True,
             "models": ["Juggernaut XL", "AlbedoBase XL (SDXL)"]
         }
         
         try:
+            # İSTEK GÖNDER
             req = requests.post(
                 "https://stablehorde.net/api/v2/generate/async",
                 json=payload,
-                # Key'i buraya gönderiyoruz
-                headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v5.0-Auth"},
+                headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v6.0"},
                 timeout=30
             )
+            
+            # --- HATA YAKALAMA VE KURTARMA (BURASI ÖNEMLİ) ---
+            if req.status_code == 401: # 401 = KEY GEÇERSİZ / BOZUK
+                print("⚠️ HATA: Horde Key geçersiz çıktı! Otomatik olarak Anonim moda geçiliyor...", flush=True)
+                HORDE_KEY = "0000000000" # Key'i sıfırla
+                payload["params"]["post_processing"] = [] # HD'yi kapat (Anonimler yapamaz)
+                
+                # Tekrar dene (Anonim olarak)
+                req = requests.post(
+                    "https://stablehorde.net/api/v2/generate/async",
+                    json=payload,
+                    headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v6.0-Anon"},
+                    timeout=30
+                )
             
             if req.status_code != 202:
                 print(f"      ⚠️ Sunucu hatası ({req.status_code}), bu kare atlanıyor.", flush=True)
@@ -140,14 +152,13 @@ def generate_album_images(base_prompt, count=10):
             
             # Bekleme Döngüsü
             img_downloaded = False
-            for _ in range(60): # Key olsa bile yoğunluk olabilir, 20 dk bekleyelim
+            for _ in range(60): 
                 time.sleep(20)
                 try:
                     chk = requests.get(f"https://stablehorde.net/api/v2/generate/status/{task_id}", timeout=30).json()
                     
-                    # Sıra bilgisini yazdıralım
                     if 'queue_position' in chk:
-                        print(f"      ⏳ Sıra: {chk['queue_position']} | Bekleniyor...", flush=True)
+                        print(f"      ⏳ Sıra: {chk['queue_position']}...", flush=True)
 
                     if chk['done'] and len(chk['generations']) > 0:
                         img_url = chk['generations'][0]['img']
@@ -184,11 +195,7 @@ def upload_album(paths, caption):
         cl.login(INSTA_USER, INSTA_PASS)
         
         print(f"📤 {len(paths)} Parçalı Albüm Yükleniyor...", flush=True)
-        
-        cl.album_upload(
-            paths=paths,
-            caption=caption
-        )
+        cl.album_upload(paths=paths, caption=caption)
         print("✅ GİZEMLİ ALBÜM PAYLAŞILDI!", flush=True)
         return True
     except Exception as e:
@@ -204,12 +211,8 @@ def upload_album(paths, caption):
 # MAIN
 # -----------------------------
 if __name__ == "__main__":
-    print("🚀 GİZEMLİ BOT BAŞLATILIYOR (V5 - Authenticated Mode)...", flush=True)
+    print("🚀 GİZEMLİ BOT BAŞLATILIYOR (V6 - Auto-Fix Mode)...", flush=True)
     
-    # Key kontrolü
-    if HORDE_KEY == "0000000000":
-         print("UYARI: Main.yml dosyasında HORDE_API_KEY tanımlı değil veya anonim moddasın.", flush=True)
-
     prompt, full_caption = get_documentary_content()
     
     print("\n------------------------------------------------")
