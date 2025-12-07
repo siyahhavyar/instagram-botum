@@ -1,3 +1,4 @@
-google-generativeai
-pillow
 requests
+google-generativeai
+instagrapi
+pillow
