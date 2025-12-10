@@ -18,21 +18,19 @@ GEMINI_KEY    = os.getenv("GEMINI_KEY")
 HORDE_KEY     = os.getenv("HORDE_API_KEY")
 GROQ_KEY      = os.getenv("GROQ_API_KEY")
 
-# --- KRİTİK DÜZELTME: KEY TEMİZLİĞİ ---
-# Eğer key'in başında/sonunda boşluk varsa temizler.
+# --- KEY TEMİZLİĞİ ---
+# Eğer kopyalarken boşluk kaldıysa temizler
 if HORDE_KEY:
     HORDE_KEY = HORDE_KEY.strip()
 
-# Key kontrolü (Loglama)
 if not HORDE_KEY or len(HORDE_KEY) < 10:
-    print(f"⚠️ UYARI: Horde Key sorunlu görünüyor. (Uzunluk: {len(HORDE_KEY) if HORDE_KEY else 0})", flush=True)
-    print("👉 Anonim mod (yavaş ve düşük kalite) kullanılacak.", flush=True)
+    print(f"⚠️ UYARI: Horde Key yok/kısa. Anonim mod.", flush=True)
     HORDE_KEY = "0000000000"
 else:
     print(f"BAŞARILI: Horde Key yüklendi! (Uzunluk: {len(HORDE_KEY)})", flush=True)
 
 # -----------------------------
-# 1. BELGESEL YAZARI (ÇOKLU MODEL DENEME)
+# 1. BELGESEL YAZARI (2025 MODEL ORDUSU)
 # -----------------------------
 def get_documentary_content():
     instructions = """
@@ -51,33 +49,47 @@ def get_documentary_content():
     CAPTION: <The full text>
     """
 
-    # --- PLAN A: GEMINI (MODERN DÖNGÜ) ---
+    # --- PLAN A: GEMINI (YENİ 2025 LİSTESİ) ---
     if GEMINI_KEY:
-        print("🧠 Plan A: Gemini deneniyor...", flush=True)
+        print("🧠 Plan A: Gemini (2025 Modelleri) deneniyor...", flush=True)
         genai.configure(api_key=GEMINI_KEY)
         
-        # Denenecek modeller sırasıyla:
+        # Senin verdiğin güncel liste (En güçlüden en hafife doğru)
         models_to_try = [
-            "gemini-2.0-flash-exp", 
-            "gemini-1.5-flash", 
-            "gemini-1.5-flash-latest", 
-            "gemini-1.5-pro", 
-            "gemini-pro"
+            "gemini-2.5-pro", 
+            "gemini-2.5-flash", 
+            "gemini-2.0-flash", 
+            "gemini-2.0-flash-001",
+            "gemini-2.0-flash-lite",
+            "gemini-2.5-flash-lite",
+            "gemini-1.5-pro",   # Eskiler yedek kalsın
+            "gemini-1.5-flash"
         ]
         
         for model_name in models_to_try:
             try:
-                print(f"   ↳ Model deneniyor: {model_name}...", flush=True)
-                config = genai.types.GenerationConfig(temperature=1.1)
+                print(f"   ↳ Deneniyor: {model_name}...", flush=True)
+                # Sıcaklık ayarı
+                config = genai.types.GenerationConfig(temperature=1.0)
                 model = genai.GenerativeModel(model_name, generation_config=config)
+                
                 response = model.generate_content(instructions)
-                parts = response.text.split("CAPTION:")
-                if len(parts) >= 2:
-                    print(f"   ✅ BAŞARILI: {model_name} cevap verdi!", flush=True)
-                    return parts[0].replace("PROMPT:", "").strip(), parts[1].strip()
+                
+                if response.text:
+                    parts = response.text.split("CAPTION:")
+                    if len(parts) >= 2:
+                        print(f"   ✅ BAŞARILI: {model_name} çalıştı!", flush=True)
+                        return parts[0].replace("PROMPT:", "").strip(), parts[1].strip()
             except Exception as e:
-                print(f"   ❌ {model_name} hatası: {e}", flush=True)
-                continue # Bir sonraki modele geç
+                # Hata mesajını analiz et
+                err = str(e)
+                if "404" in err:
+                    print(f"      ❌ {model_name} Bulunamadı (404).", flush=True)
+                elif "429" in err:
+                    print(f"      ❌ {model_name} Kota Dolu (429).", flush=True)
+                else:
+                    print(f"      ❌ {model_name} Hatası: {err[:50]}...", flush=True)
+                continue # Sıradaki modele geç
 
     # --- PLAN B: GROQ ---
     if GROQ_KEY:
@@ -89,7 +101,7 @@ def get_documentary_content():
                 "model": "llama-3.3-70b-versatile",
                 "messages": [{"role": "user", "content": instructions}]
             }
-            response = requests.post(url, headers=headers, json=data, timeout=30)
+            response = requests.post(url, headers=headers, json=data, timeout=20)
             if response.status_code == 200:
                 parts = response.json()['choices'][0]['message']['content'].split("CAPTION:")
                 if len(parts) >= 2:
@@ -97,8 +109,22 @@ def get_documentary_content():
         except Exception:
             pass
 
-    # --- PLAN C: POLLINATIONS (Yedek) ---
-    return "Ancient mysterious ruins in fog", "Mystery of the Ancients... 🌑 #History #Mystery"
+    # --- PLAN C: POLLINATIONS (Yedek Metin Zekası) ---
+    try:
+        print("🧠 Plan C: Pollinations (Metin) deneniyor...", flush=True)
+        seed = random.randint(1, 999999)
+        simple_instr = "Write a mystery history story. Format: PROMPT: (visuals) CAPTION: (story)."
+        encoded = urllib.parse.quote(simple_instr)
+        url = f"https://text.pollinations.ai/{encoded}?seed={seed}&model=openai" 
+        response = requests.get(url, timeout=30)
+        parts = response.text.split("CAPTION:")
+        if len(parts) >= 2:
+            print("✅ Pollinations Metin Başarılı!", flush=True)
+            return parts[0].replace("PROMPT:", "").strip(), parts[1].strip()
+    except:
+        pass
+
+    return "Ancient ruins in fog", "Mystery of the Ancients... 🌑 #History #Mystery"
 
 # -----------------------------
 # 2. 10 RESİMLİK ALBÜM ÜRETİMİ
@@ -130,7 +156,6 @@ def generate_album_images(base_prompt, count=10):
             "post_processing": ["RealESRGAN_x4plus"]
         }
 
-        # Anonim mod kontrolü
         if HORDE_KEY == "0000000000":
             params["post_processing"] = []
             params["steps"] = 25
@@ -147,20 +172,19 @@ def generate_album_images(base_prompt, count=10):
             req = requests.post(
                 "https://stablehorde.net/api/v2/generate/async",
                 json=payload,
-                headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v9.0"},
+                headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v11.0"},
                 timeout=30
             )
             
-            # --- 401 HATASI YÖNETİMİ ---
+            # --- KEY HATASI OLURSA ANONİM MODA GEÇ ---
             if req.status_code == 401:
-                print("⚠️ HATA: Horde Key hala reddediliyor! Anonim moda zorlanıyor.", flush=True)
+                print("⚠️ HATA: Horde Key reddedildi! Anonim moda geçiliyor.", flush=True)
                 HORDE_KEY = "0000000000"
                 payload["params"]["post_processing"] = []
-                # Tekrar dene
                 req = requests.post(
                     "https://stablehorde.net/api/v2/generate/async",
                     json=payload,
-                    headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v9.0-Anon"},
+                    headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v11.0-Anon"},
                     timeout=30
                 )
 
@@ -170,7 +194,6 @@ def generate_album_images(base_prompt, count=10):
                 
             task_id = req.json()['id']
             
-            # Bekleme
             img_downloaded = False
             for _ in range(60): 
                 time.sleep(20)
@@ -223,7 +246,7 @@ def upload_album(paths, caption):
                 print("✅ Session ile giriş başarılı!", flush=True)
                 session_loaded = True
             except Exception as e:
-                print(f"⚠️ Session hatası: {e}", flush=True)
+                print(f"⚠️ Session hatası: {e}. Normal giriş deneniyor...", flush=True)
         
         if not session_loaded:
             print("🔑 Kullanıcı adı/Şifre ile giriş yapılıyor...", flush=True)
@@ -245,7 +268,7 @@ def upload_album(paths, caption):
 # MAIN
 # -----------------------------
 if __name__ == "__main__":
-    print("🚀 GİZEMLİ TARİH BOTU (V9 - Tank Modu)...", flush=True)
+    print("🚀 GİZEMLİ TARİH BOTU (V11 - 2025 Model)...", flush=True)
     
     prompt, full_caption = get_documentary_content()
     
@@ -253,6 +276,7 @@ if __name__ == "__main__":
     print(f"💀 KONU: {prompt[:100]}...")
     print("------------------------------------------------\n")
     
+    # 10 Resimlik Albümü Çiz
     images = generate_album_images(prompt, count=10)
     
     if len(images) >= 2:
