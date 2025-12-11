@@ -18,10 +18,9 @@ GEMINI_KEY    = os.getenv("GEMINI_KEY")
 HORDE_KEY     = os.getenv("HORDE_API_KEY")
 GROQ_KEY      = os.getenv("GROQ_API_KEY")
 
-# --- KEY TEMİZLİĞİ ---
-# Eğer kopyalarken boşluk kaldıysa temizler
-if HORDE_KEY:
-    HORDE_KEY = HORDE_KEY.strip()
+# Key Temizliği
+if HORDE_KEY: HORDE_KEY = HORDE_KEY.strip()
+if GEMINI_KEY: GEMINI_KEY = GEMINI_KEY.strip()
 
 if not HORDE_KEY or len(HORDE_KEY) < 10:
     print(f"⚠️ UYARI: Horde Key yok/kısa. Anonim mod.", flush=True)
@@ -30,120 +29,150 @@ else:
     print(f"BAŞARILI: Horde Key yüklendi! (Uzunluk: {len(HORDE_KEY)})", flush=True)
 
 # -----------------------------
-# 1. BELGESEL YAZARI (2025 MODEL ORDUSU)
+# 1. BELGESEL YAZARI VE SENARİST (10 FARKLI SAHNE)
 # -----------------------------
 def get_documentary_content():
-    instructions = """
-    Act as a professional Documentary Narrator (National Geographic style).
-    STEP 1: Choose a mysterious topic (Lost Civilizations, Dark Mythology, Deep Sea, Cursed Artifacts).
-    STEP 2: Create a visual description for AI images (Cinematic, Dark, Hyper-realistic, 8k).
-    STEP 3: Write an Instagram Caption in ENGLISH:
-    - 🛑 TITLE: Catchy Title (Uppercase)
-    - 📖 THE STORY: 2-3 engaging paragraphs history/legend.
-    - 🔍 THE MYSTERY: What makes it unexplainable?
-    - 🧠 DID YOU KNOW?: A surprising fact.
-    - #️⃣ HASHTAGS: 15 relevant hashtags.
+    """
+    Hem Instagram açıklamasını yazar hem de 10 farklı resim promptu üretir.
+    """
     
-    OUTPUT FORMAT:
-    PROMPT: <Visual description>
-    CAPTION: <The full text>
+    # Konu çeşitliliği için rastgele kategori
+    categories = [
+        "Lost Civilizations & Jungle Ruins",
+        "Deep Sea Horror & Shipwrecks",
+        "Cursed Archeological Artifacts",
+        "Victorian Era Murder Mystery",
+        "Alien Artifacts found on Earth",
+        "Haunted Gothic Castles",
+        "Ancient Viking/Norse Mythology",
+        "Japanese Folklore & Yokai",
+        "Cyberpunk Dystopian Future Ruins",
+        "Post-Apocalyptic Overgrown Cities"
+    ]
+    chosen_category = random.choice(categories)
+    print(f"🎲 Seçilen Kategori: {chosen_category}", flush=True)
+
+    instructions = f"""
+    Act as a Documentary Director.
+    TOPIC CATEGORY: {chosen_category}
+    
+    TASK 1: Create a cohesive visual story with 10 DISTINCT SCENES.
+    - Scene 1 must be an establishing shot (Wide view).
+    - Scene 2-9 must be details, characters, artifacts, or action shots (Close-ups, diverse angles).
+    - Scene 10 must be a dramatic conclusion or cliffhanger.
+    
+    TASK 2: Write an Instagram Caption (English).
+    - Title (Uppercase)
+    - Story (3 paragraphs)
+    - Mystery/Fact
+    - Hashtags
+    
+    OUTPUT FORMAT (Strictly follow this):
+    SCENE_1: <Visual prompt for scene 1>
+    SCENE_2: <Visual prompt for scene 2>
+    ...
+    SCENE_10: <Visual prompt for scene 10>
+    CAPTION: <The full instagram caption text>
     """
 
-    # --- PLAN A: GEMINI (YENİ 2025 LİSTESİ) ---
+    # --- PLAN A: GEMINI (MODERN LİSTE) ---
     if GEMINI_KEY:
-        print("🧠 Plan A: Gemini (2025 Modelleri) deneniyor...", flush=True)
+        print("🧠 Plan A: Gemini (Senarist) düşünülüyor...", flush=True)
         genai.configure(api_key=GEMINI_KEY)
         
-        # Senin verdiğin güncel liste (En güçlüden en hafife doğru)
-        models_to_try = [
-            "gemini-2.5-pro", 
-            "gemini-2.5-flash", 
-            "gemini-2.0-flash", 
-            "gemini-2.0-flash-001",
-            "gemini-2.0-flash-lite",
-            "gemini-2.5-flash-lite",
-            "gemini-1.5-pro",   # Eskiler yedek kalsın
-            "gemini-1.5-flash"
-        ]
+        # Leaked Key hatası almamak için yeni key şart.
+        # Yine de en güncel modelleri deniyoruz.
+        models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-8b"]
         
-        for model_name in models_to_try:
+        for m in models:
             try:
-                print(f"   ↳ Deneniyor: {model_name}...", flush=True)
-                # Sıcaklık ayarı
-                config = genai.types.GenerationConfig(temperature=1.0)
-                model = genai.GenerativeModel(model_name, generation_config=config)
-                
+                print(f"   ↳ Model: {m}...", flush=True)
+                model = genai.GenerativeModel(m)
                 response = model.generate_content(instructions)
                 
-                if response.text:
-                    parts = response.text.split("CAPTION:")
-                    if len(parts) >= 2:
-                        print(f"   ✅ BAŞARILI: {model_name} çalıştı!", flush=True)
-                        return parts[0].replace("PROMPT:", "").strip(), parts[1].strip()
+                text = response.text
+                if "SCENE_1:" in text and "CAPTION:" in text:
+                    print(f"   ✅ BAŞARILI: {m} senaryoyu yazdı!", flush=True)
+                    return parse_gemini_response(text)
             except Exception as e:
-                # Hata mesajını analiz et
-                err = str(e)
-                if "404" in err:
-                    print(f"      ❌ {model_name} Bulunamadı (404).", flush=True)
-                elif "429" in err:
-                    print(f"      ❌ {model_name} Kota Dolu (429).", flush=True)
-                else:
-                    print(f"      ❌ {model_name} Hatası: {err[:50]}...", flush=True)
-                continue # Sıradaki modele geç
+                if "403" in str(e):
+                    print("   🚨 KRİTİK HATA: API Key 'Leaked' (Sızdırılmış). Lütfen Google AI Studio'dan YENİ KEY al!", flush=True)
+                    break # Key patlaksa diğer modelleri denemeye gerek yok.
+                print(f"      ❌ {m} hatası: {e}")
 
     # --- PLAN B: GROQ ---
     if GROQ_KEY:
         try:
-            print("🧠 Plan B: Groq yazıyor...", flush=True)
+            print("🧠 Plan B: Groq devreye giriyor...", flush=True)
             url = "https://api.groq.com/openai/v1/chat/completions"
             headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
-            data = {
-                "model": "llama-3.3-70b-versatile",
-                "messages": [{"role": "user", "content": instructions}]
-            }
-            response = requests.post(url, headers=headers, json=data, timeout=20)
+            data = {"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": instructions}]}
+            response = requests.post(url, headers=headers, json=data, timeout=30)
             if response.status_code == 200:
-                parts = response.json()['choices'][0]['message']['content'].split("CAPTION:")
-                if len(parts) >= 2:
-                    return parts[0].replace("PROMPT:", "").strip(), parts[1].strip()
+                text = response.json()['choices'][0]['message']['content']
+                return parse_gemini_response(text)
         except Exception:
             pass
 
-    # --- PLAN C: POLLINATIONS (Yedek Metin Zekası) ---
-    try:
-        print("🧠 Plan C: Pollinations (Metin) deneniyor...", flush=True)
-        seed = random.randint(1, 999999)
-        simple_instr = "Write a mystery history story. Format: PROMPT: (visuals) CAPTION: (story)."
-        encoded = urllib.parse.quote(simple_instr)
-        url = f"https://text.pollinations.ai/{encoded}?seed={seed}&model=openai" 
-        response = requests.get(url, timeout=30)
-        parts = response.text.split("CAPTION:")
-        if len(parts) >= 2:
-            print("✅ Pollinations Metin Başarılı!", flush=True)
-            return parts[0].replace("PROMPT:", "").strip(), parts[1].strip()
-    except:
-        pass
+    # YEDEK (FALLBACK) - Eğer her şey bozulursa
+    print("⚠️ HATA: Yapay zeka çalışmadı. Yedek senaryo kullanılıyor.", flush=True)
+    fallback_prompts = [f"Mysterious {chosen_category}, cinematic shot {i}" for i in range(1, 11)]
+    return fallback_prompts, f"Mystery of {chosen_category} #Mystery"
 
-    return "Ancient ruins in fog", "Mystery of the Ancients... 🌑 #History #Mystery"
+def parse_gemini_response(text):
+    """Gemini'den gelen metni 10 ayrı prompt ve 1 caption olarak ayırır."""
+    prompts = []
+    caption = ""
+    
+    lines = text.split('\n')
+    current_caption_lines = []
+    is_caption = False
+    
+    for line in lines:
+        line = line.strip()
+        if not line: continue
+        
+        if line.startswith("SCENE_"):
+            # "SCENE_1: Dark forest" -> "Dark forest" kısmını al
+            parts = line.split(":", 1)
+            if len(parts) > 1:
+                prompts.append(parts[1].strip())
+        elif line.startswith("CAPTION:"):
+            is_caption = True
+            parts = line.split(":", 1)
+            if len(parts) > 1:
+                current_caption_lines.append(parts[1].strip())
+        elif is_caption:
+            current_caption_lines.append(line)
+            
+    caption = "\n".join(current_caption_lines)
+    
+    # Eğer prompt sayısı 10'dan azsa tamamla
+    while len(prompts) < 10:
+        prompts.append(prompts[-1] if prompts else "Mysterious dark scene, cinematic")
+        
+    return prompts[:10], caption
 
 # -----------------------------
-# 2. 10 RESİMLİK ALBÜM ÜRETİMİ
+# 2. 10 RESİMLİK ALBÜM ÜRETİMİ (HER SAHNE FARKLI)
 # -----------------------------
-def generate_album_images(base_prompt, count=10):
+def generate_album_images(prompt_list):
     global HORDE_KEY
-    print(f"🎨 {count} karelik Albüm çizimi başlıyor...", flush=True)
+    print(f"🎨 {len(prompt_list)} Farklı Sahne Çiziliyor...", flush=True)
     
     generated_files = []
     
-    final_prompt = (
-        f"{base_prompt}, "
-        "photorealistic, 8k, cinematic lighting, national geographic style, "
-        "mysterious atmosphere, highly detailed, dramatic shadows, "
-        "vertical aspect ratio"
-    )
-    
-    for i in range(count):
-        print(f"   ↳ Kare {i+1}/{count} işleniyor...", flush=True)
+    for i, specific_prompt in enumerate(prompt_list):
+        print(f"   🎬 Sahne {i+1}/10: {specific_prompt[:50]}...", flush=True)
+        
+        # Her sahne için özel prompt
+        final_prompt = (
+            f"{specific_prompt}, "
+            "photorealistic, 8k, cinematic lighting, highly detailed, "
+            "dramatic shadows, vertical aspect ratio 4:5"
+        )
+        
+        # Tohum yine rastgele olsun
         unique_seed = str(random.randint(1, 9999999999))
         
         params = {
@@ -172,37 +201,28 @@ def generate_album_images(base_prompt, count=10):
             req = requests.post(
                 "https://stablehorde.net/api/v2/generate/async",
                 json=payload,
-                headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v11.0"},
+                headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v12.0"},
                 timeout=30
             )
             
-            # --- KEY HATASI OLURSA ANONİM MODA GEÇ ---
             if req.status_code == 401:
-                print("⚠️ HATA: Horde Key reddedildi! Anonim moda geçiliyor.", flush=True)
                 HORDE_KEY = "0000000000"
                 payload["params"]["post_processing"] = []
-                req = requests.post(
-                    "https://stablehorde.net/api/v2/generate/async",
-                    json=payload,
-                    headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v11.0-Anon"},
-                    timeout=30
-                )
+                req = requests.post("https://stablehorde.net/api/v2/generate/async", json=payload, headers={"apikey": HORDE_KEY}, timeout=30)
 
             if req.status_code != 202:
-                print(f"      ⚠️ Sunucu hatası ({req.status_code}), atlanıyor.", flush=True)
+                print(f"      ⚠️ Sunucu hatası, bu sahne atlandı.", flush=True)
                 continue
                 
             task_id = req.json()['id']
             
+            # İndirme Döngüsü
             img_downloaded = False
             for _ in range(60): 
-                time.sleep(20)
+                time.sleep(15)
                 try:
                     chk = requests.get(f"https://stablehorde.net/api/v2/generate/status/{task_id}", timeout=30).json()
                     
-                    if 'queue_position' in chk:
-                        print(f"      ⏳ Sıra: {chk['queue_position']}...", flush=True)
-
                     if chk['done'] and len(chk['generations']) > 0:
                         img_url = chk['generations'][0]['img']
                         img_data = requests.get(img_url, timeout=60).content
@@ -212,17 +232,16 @@ def generate_album_images(base_prompt, count=10):
                             f.write(img_data)
                         
                         generated_files.append(fname)
-                        print(f"      ✅ İndirildi: {fname}", flush=True)
+                        print(f"      ✅ İndirildi.", flush=True)
                         img_downloaded = True
                         break
-                except:
-                    pass
+                except: pass
             
             if not img_downloaded:
                 print("      ⚠️ Zaman aşımı.", flush=True)
                 
         except Exception as e:
-            print(f"      ⚠️ Bağlantı hatası: {e}", flush=True)
+            print(f"      ⚠️ Hata: {e}", flush=True)
 
     return generated_files
 
@@ -231,32 +250,27 @@ def generate_album_images(base_prompt, count=10):
 # -----------------------------
 def upload_album(paths, caption):
     if not paths: return False
-    
     try:
         print("📸 Instagram oturumu açılıyor...", flush=True)
         cl = Client()
-        
         session_loaded = False
+        
         if INSTA_SESSION:
             try:
-                print("🍪 Kayıtlı Session yükleniyor...", flush=True)
                 settings = json.loads(INSTA_SESSION)
                 cl.load_settings(settings)
                 cl.login(INSTA_USER, INSTA_PASS)
                 print("✅ Session ile giriş başarılı!", flush=True)
                 session_loaded = True
-            except Exception as e:
-                print(f"⚠️ Session hatası: {e}. Normal giriş deneniyor...", flush=True)
+            except: pass
         
         if not session_loaded:
-            print("🔑 Kullanıcı adı/Şifre ile giriş yapılıyor...", flush=True)
             cl.login(INSTA_USER, INSTA_PASS)
         
         print(f"📤 {len(paths)} Parçalı Albüm Yükleniyor...", flush=True)
         cl.album_upload(paths=paths, caption=caption)
-        print("✅ GİZEMLİ ALBÜM PAYLAŞILDI!", flush=True)
+        print("✅ ALBÜM PAYLAŞILDI!", flush=True)
         return True
-    
     except Exception as e:
         print(f"❌ Instagram Hatası: {e}", flush=True)
         return False
@@ -268,18 +282,22 @@ def upload_album(paths, caption):
 # MAIN
 # -----------------------------
 if __name__ == "__main__":
-    print("🚀 GİZEMLİ TARİH BOTU (V11 - 2025 Model)...", flush=True)
+    print("🚀 GİZEMLİ TARİH BOTU (V12 - SENARYO MODU)...", flush=True)
     
-    prompt, full_caption = get_documentary_content()
+    # 1. 10 Farklı Sahne Fikri Al
+    prompt_list, full_caption = get_documentary_content()
     
     print("\n------------------------------------------------")
-    print(f"💀 KONU: {prompt[:100]}...")
+    print(f"📝 MAKALE BAŞLIĞI: {full_caption.splitlines()[0]}")
+    print(f"🎬 SAHNE SAYISI: {len(prompt_list)}")
     print("------------------------------------------------\n")
     
-    # 10 Resimlik Albümü Çiz
-    images = generate_album_images(prompt, count=10)
+    # 2. Resimleri Çiz
+    images = generate_album_images(prompt_list)
     
+    # 3. Paylaş
     if len(images) >= 2:
         upload_album(images, full_caption)
     else:
         print("⚠️ Yeterli resim yok, iptal.", flush=True)
+            
