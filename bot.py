@@ -18,7 +18,7 @@ GEMINI_KEY    = os.getenv("GEMINI_KEY")
 HORDE_KEY     = os.getenv("HORDE_API_KEY")
 GROQ_KEY      = os.getenv("GROQ_API_KEY")
 
-# --- KEY TEMİZLİĞİ (Görünmez boşlukları siler) ---
+# --- KEY TEMİZLİĞİ ---
 if HORDE_KEY: HORDE_KEY = HORDE_KEY.strip()
 if GROQ_KEY: GROQ_KEY = GROQ_KEY.strip()
 if GEMINI_KEY: GEMINI_KEY = GEMINI_KEY.strip()
@@ -30,51 +30,66 @@ else:
     print(f"BAŞARILI: Horde Key aktif!", flush=True)
 
 # -----------------------------
-# 1. BELGESEL YAZARI (GROQ ÖNCELİKLİ)
+# 1. BELGESEL YAZARI (AYDINLIK & ÇEŞİTLİ)
 # -----------------------------
 def get_documentary_content():
-    # Rastgele kategori seçimi
     categories = [
-        "Lost Mayan Temples in Jungle",
-        "Deep Sea Titanic-like Shipwrecks",
-        "Cursed Egyptian Tombs",
-        "Cyberpunk Neon City Alleys",
-        "Victorian London Mystery",
-        "Alien Pyramids on Mars",
-        "Steampunk Flying Cities",
-        "Post-Apocalyptic New York",
-        "Viking Valhalla Halls",
-        "Samurai Temples in Snow"
+        "Lost Mayan Temples in Jungle (Daylight)",
+        "Deep Sea Titanic-like Shipwrecks (Clear water)",
+        "Cursed Egyptian Tombs (Golden hour)",
+        "Cyberpunk Neon City Alleys (Colorful)",
+        "Victorian London Mystery (Foggy but bright)",
+        "Alien Pyramids on Mars (Red sunset)",
+        "Steampunk Flying Cities (Blue sky)",
+        "Post-Apocalyptic New York (Overgrown)",
+        "Viking Valhalla Halls (Epic lighting)",
+        "Samurai Temples in Snow (Sunny)"
     ]
     chosen_cat = random.choice(categories)
     print(f"🎲 Kategori: {chosen_cat}", flush=True)
 
-    # Yapay Zekaya Emir
     instructions = f"""
-    Act as a Documentary Director. TOPIC: {chosen_cat}
+    Act as a Professional Documentary Director. TOPIC: {chosen_cat}
     
-    TASK 1: Create 10 DISTINCT image prompts for a visual story.
-    TASK 2: Write an Instagram Caption (Title, Story, Hashtags).
+    TASK 1: Create 10 DISTINCT, VIBRANT, and EPIC image prompts for a visual story.
+    - Focus on majestic, cinematic, and awe-inspiring visuals.
+    - AVOID overly dark or horror themes. Use words like "majestic," "golden light," "fantasy," "epic scale."
+    
+    TASK 2: Write an Instagram Caption matching this EXACT structure:
+    
+    🛑 [CATCHY TITLE IN UPPERCASE]
+    
+    📖 THE STORY:
+    [Write 2 engaging paragraphs about the history or legend.]
+    
+    🔍 THE MYSTERY:
+    [Explain what makes this topic mysterious and fascinating.]
+    
+    🧠 DID YOU KNOW?:
+    [Write one surprising fact about this topic.]
+    
+    #️⃣ HASHTAGS:
+    [List 15 relevant hashtags here]
     
     OUTPUT FORMAT (Strictly):
     SCENE_1: <Visual prompt 1>
     SCENE_2: <Visual prompt 2>
     ...
     SCENE_10: <Visual prompt 10>
-    CAPTION: <Full caption text>
+    CAPTION: <The full caption starting with the title>
     """
 
-    # --- PLAN A: GROQ (LLAMA 3.3 - FAVORİ) ---
+    # --- PLAN A: GROQ (LLAMA 3.3) ---
     if GROQ_KEY:
         try:
-            print("🧠 Plan A: Groq (Llama 3.3) öncelikli olarak deneniyor...", flush=True)
+            print("🧠 Plan A: Groq (Llama 3.3) öncelikli deneniyor...", flush=True)
             url = "https://api.groq.com/openai/v1/chat/completions"
             headers = {
                 "Authorization": f"Bearer {GROQ_KEY}", 
                 "Content-Type": "application/json"
             }
             data = {
-                "model": "llama-3.3-70b-versatile", # Groq'un en iyi modeli
+                "model": "llama-3.3-70b-versatile",
                 "messages": [{"role": "user", "content": instructions}],
                 "temperature": 0.7
             }
@@ -91,12 +106,10 @@ def get_documentary_content():
                 
         except Exception as e:
             print(f"   ❌ Groq Bağlantı Hatası: {e}")
-    else:
-        print("   ℹ️ Groq Key tanımlı değil, diğer plana geçiliyor.")
 
-    # --- PLAN B: POLLINATIONS (BEDAVA & SINIRSIZ) ---
+    # --- PLAN B: POLLINATIONS (BEDAVA) ---
     try:
-        print("🧠 Plan B: Pollinations (Sınırsız) deneniyor...", flush=True)
+        print("🧠 Plan B: Pollinations deneniyor...", flush=True)
         seed = random.randint(1, 999999)
         encoded_prompt = urllib.parse.quote(instructions)
         url = f"https://text.pollinations.ai/{encoded_prompt}?seed={seed}&model=openai"
@@ -111,12 +124,11 @@ def get_documentary_content():
     except Exception as e:
         print(f"   ❌ Pollinations Hatası: {e}")
 
-    # --- PLAN C: GEMINI (YEDEK) ---
+    # --- PLAN C: GEMINI ---
     if GEMINI_KEY:
         try:
             print("🧠 Plan C: Gemini deneniyor...", flush=True)
             genai.configure(api_key=GEMINI_KEY)
-            # En son çıkan modelleri dener
             models = ["gemini-2.0-flash", "gemini-1.5-flash"]
             for m in models:
                 try:
@@ -130,11 +142,10 @@ def get_documentary_content():
 
     # --- PLAN D: MANUEL YEDEK ---
     print("⚠️ Tüm yapay zekalar meşgul. Manuel yedek devreye girdi.", flush=True)
-    fallback_prompts = [f"Cinematic shot of {chosen_cat}, scene {i}, highly detailed" for i in range(1, 11)]
-    return fallback_prompts, f"The mystery of {chosen_cat}... #Mystery #History"
+    fallback_prompts = [f"Cinematic fantasy shot of {chosen_cat}, scene {i}, vibrant colors" for i in range(1, 11)]
+    return fallback_prompts, f"🛑 MYSTERY OF {chosen_cat.upper()}\n\n📖 THE STORY:\nA mysterious event...\n\n#Mystery"
 
 def parse_ai_response(text):
-    """Yapay zeka çıktısını parçalar"""
     prompts = []
     caption_lines = []
     is_caption = False
@@ -154,25 +165,26 @@ def parse_ai_response(text):
             caption_lines.append(line)
             
     while len(prompts) < 10:
-        prompts.append(prompts[-1] if prompts else "Mysterious dark cinematic scene")
+        prompts.append(prompts[-1] if prompts else "Mysterious bright cinematic scene")
         
     return prompts[:10], "\n".join(caption_lines)
 
 # -----------------------------
-# 2. 10 RESİMLİK ALBÜM ÜRETİMİ
+# 2. 10 RESİMLİK ALBÜM ÜRETİMİ (AYDINLIK TARZ)
 # -----------------------------
 def generate_album_images(prompt_list):
     global HORDE_KEY
-    print(f"🎨 {len(prompt_list)} Farklı Sahne Çiziliyor...", flush=True)
+    print(f"🎨 {len(prompt_list)} Farklı Sahne Çiziliyor (Aydınlık Tarz)...", flush=True)
     generated_files = []
     
     for i, specific_prompt in enumerate(prompt_list):
         print(f"   🎬 Sahne {i+1}/10: {specific_prompt[:40]}...", flush=True)
         
+        # --- İŞTE BURASI DEĞİŞTİ (Daha aydınlık ve epik) ---
         final_prompt = (
             f"{specific_prompt}, "
-            "photorealistic, 8k, cinematic lighting, highly detailed, "
-            "dramatic shadows, vertical aspect ratio 4:5"
+            "cinematic fantasy style, golden hour lighting, majestic, "
+            "vibrant colors, epic scale, highly detailed, vertical aspect ratio 4:5"
         )
         
         unique_seed = str(random.randint(1, 9999999999))
@@ -187,7 +199,6 @@ def generate_album_images(prompt_list):
             "post_processing": ["RealESRGAN_x4plus"]
         }
         
-        # Anonim mod ayarı
         if HORDE_KEY == "0000000000":
             params["post_processing"] = []
             params["steps"] = 25
@@ -201,10 +212,9 @@ def generate_album_images(prompt_list):
         }
         
         try:
-            req = requests.post("https://stablehorde.net/api/v2/generate/async", json=payload, headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v16.0"}, timeout=30)
+            req = requests.post("https://stablehorde.net/api/v2/generate/async", json=payload, headers={"apikey": HORDE_KEY, "Client-Agent": "MysteryBot:v18.0"}, timeout=30)
             
             if req.status_code == 401:
-                print("   ⚠️ Key hatası (401). Anonim moda geçiliyor.")
                 HORDE_KEY = "0000000000"
                 payload["params"]["post_processing"] = []
                 req = requests.post("https://stablehorde.net/api/v2/generate/async", json=payload, headers={"apikey": HORDE_KEY}, timeout=30)
@@ -212,13 +222,11 @@ def generate_album_images(prompt_list):
             if req.status_code != 202: continue
             task_id = req.json()['id']
             
-            img_done = False
             for _ in range(60): 
                 time.sleep(15)
                 try:
                     chk = requests.get(f"https://stablehorde.net/api/v2/generate/status/{task_id}", timeout=30).json()
                     
-                    # Sıra bilgisini göster
                     if 'queue_position' in chk:
                         qp = chk['queue_position']
                         if qp > 0: print(f"      ⏳ Sıra: {qp}...", flush=True)
@@ -229,7 +237,6 @@ def generate_album_images(prompt_list):
                         with open(fname, "wb") as f: f.write(img_data)
                         generated_files.append(fname)
                         print(f"      ✅ İndirildi.", flush=True)
-                        img_done = True
                         break
                 except: pass
         except: pass
@@ -269,12 +276,10 @@ def upload_album(paths, caption):
             if os.path.exists(p): os.remove(p)
 
 if __name__ == "__main__":
-    print("🚀 GİZEMLİ TARİH BOTU (V16 - GROQ GÜCÜ)...", flush=True)
+    print("🚀 GİZEMLİ TARİH BOTU (V18 - AYDINLIK SÜRÜM)...", flush=True)
     prompts, caption = get_documentary_content()
-    print(f"\n📝 BAŞLIK: {caption.splitlines()[0]}")
-    print(f"🎬 SAHNE SAYISI: {len(prompts)}")
+    print(f"\n📝 MAKALE ÖNİZLEMESİ:\n{caption[:300]}...\n")
     
     images = generate_album_images(prompts)
     if len(images) >= 2: upload_album(images, caption)
     else: print("⚠️ Yeterli resim yok.")
-        
